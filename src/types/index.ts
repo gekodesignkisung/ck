@@ -49,6 +49,8 @@ export interface Panel {
   /** selected members in input bar (for channel/dm) */
   selectedMembers?: Member[];
   messages?: Message[];
+  /** files uploaded or created during this conversation */
+  attachedFiles?: RecentFile[];
   /** AI is generating a response */
   isTyping?: boolean;
 }

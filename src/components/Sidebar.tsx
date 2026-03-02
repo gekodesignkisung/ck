@@ -11,6 +11,7 @@ interface SidebarProps {
   recentFiles: RecentFile[];
   currentUser: Member;
   openPanels: Panel[];
+  onGoHome: () => void;
   onAddChannel: () => void;
   onAddMember: () => void;
   onOpenChannel: (channel: Channel) => void;
@@ -25,6 +26,7 @@ export default function Sidebar({
   members,
   recentFiles,
   currentUser,
+  onGoHome,
   onAddChannel,
   onAddMember,
   onOpenChannel,
@@ -60,20 +62,33 @@ export default function Sidebar({
         </span>
       )}
       {/* Workspace title bar */}
-      <div className="flex h-[40px] items-center justify-center relative px-[10px] shrink-0 bg-[#f3f3f7]">
-        <span className="text-[14px] font-semibold text-[#292929] whitespace-nowrap truncate">
+      <div className="flex h-[50px] items-center px-[10px] shrink-0 bg-[#f3f3f7] relative">
+        <button
+          type="button"
+          onClick={onGoHome}
+          title="워크스페이스 목록"
+          className="flex items-center justify-center hover:opacity-70 transition-opacity cursor-pointer shrink-0"
+        >
+          <Image src="/icon-craken.svg" alt="Craken" width={24} height={24} />
+        </button>
+        <span className="absolute left-1/2 -translate-x-1/2 text-[14px] font-semibold text-[#292929] whitespace-nowrap truncate max-w-[140px]">
           {workspaceName}
         </span>
-
+        <button
+          type="button"
+          title="옵션"
+          className="w-[30px] h-[30px] flex items-center justify-center rounded hover:bg-black/5 transition-colors shrink-0 cursor-pointer ml-auto"
+        >
+          <Image src="/icon-option.svg" alt="options" width={24} height={24} />
+        </button>
       </div>
 
       {/* Scrollable menu area */}
       <div className="flex-1 flex flex-col gap-5 overflow-y-auto scrollbar-thin py-2 min-h-0">
         {/* Channel section */}
         <section>
-          <div className="flex h-[40px] items-center justify-between pl-0 pr-[10px]">
+          <div className="flex h-[40px] items-center justify-between pl-[12px] pr-[10px]">
             <div className="flex gap-[6px] items-center">
-              <Image src="/icon-channel.svg" alt="channel" width={16} height={16} />
               <span className="text-[14px] font-semibold text-[#999]">Channel</span>
             </div>
             <button
@@ -84,15 +99,15 @@ export default function Sidebar({
               <Image src="/icon-add.svg" alt="add" width={24} height={24} />
             </button>
           </div>
-          <ul>
+          <ul className="flex flex-col gap-px">
             {channels.map((ch) => {
               const isOpen = openPanels.some((p) => p.type === 'channel' && p.id === ch.id);
               return (
                 <li key={ch.id}>
                   <button
                     onClick={() => onOpenChannel(ch)}
-                    className={`flex h-[32px] items-center gap-[6px] px-[22px] w-full text-left hover:bg-[#f3f3f7] transition-colors cursor-pointer ${
-                      isOpen ? 'bg-[#f3f3f7]' : ''
+                    className={`flex h-[32px] items-center gap-[6px] px-[18px] w-full text-left transition-colors cursor-pointer hover:bg-gradient-to-r hover:from-transparent hover:to-[#f3f3f7] ${
+                      isOpen ? 'bg-gradient-to-r from-transparent to-[#f3f3f7]' : ''
                     }`}
                   >
                     <span
@@ -111,9 +126,8 @@ export default function Sidebar({
 
         {/* Member section */}
         <section>
-          <div className="flex h-[40px] items-center justify-between pl-0 pr-[10px]">
+          <div className="flex h-[40px] items-center justify-between pl-[12px] pr-[10px]">
             <div className="flex gap-[6px] items-center">
-              <Image src="/icon-member.svg" alt="member" width={16} height={16} />
               <span className="text-[14px] font-semibold text-[#999]">Member</span>
             </div>
             <button
@@ -124,7 +138,7 @@ export default function Sidebar({
               <Image src="/icon-add.svg" alt="add" width={24} height={24} />
             </button>
           </div>
-          <ul>
+          <ul className="flex flex-col gap-px">
             {members.map((member) => {
               const isOpen = openPanels.some((p) => p.type === 'dm' && p.id === member.id);
               return (
@@ -140,9 +154,9 @@ export default function Sidebar({
                       if (text) showTooltip(text, e);
                     }}
                     onMouseLeave={hideTooltip}
-                    className={`flex h-[32px] items-center gap-[6px] px-[22px] w-full text-left transition-colors ${
-                      member.isMe ? 'cursor-default' : 'hover:bg-[#f3f3f7] cursor-pointer'
-                    } ${isOpen ? 'bg-[#f3f3f7]' : ''}`}
+                    className={`flex h-[32px] items-center gap-[6px] px-[18px] w-full text-left transition-colors ${
+                      member.isMe ? 'cursor-default' : 'hover:bg-gradient-to-r hover:from-transparent hover:to-[#f3f3f7] cursor-pointer'
+                    } ${isOpen ? 'bg-gradient-to-r from-transparent to-[#f3f3f7]' : ''}`}
                   >
                     <span className="relative shrink-0">
                       <span
@@ -175,9 +189,8 @@ export default function Sidebar({
 
         {/* Recent File section */}
         <section>
-          <div className="flex h-[40px] items-center justify-between pl-0 pr-[10px]">
+          <div className="flex h-[40px] items-center justify-between pl-[12px] pr-[10px]">
             <div className="flex gap-[6px] items-center">
-              <Image src="/icon-recent-file.svg" alt="files" width={16} height={16} />
               <span className="text-[14px] font-semibold text-[#999]">Recent File</span>
             </div>
             <button
@@ -188,15 +201,15 @@ export default function Sidebar({
               <Image src="/icon-folder.svg" alt="folder" width={24} height={24} />
             </button>
           </div>
-          <ul>
+          <ul className="flex flex-col gap-px">
             {recentFiles.map((file) => {
               const isOpen = openPanels.some((p) => p.type === 'file' && p.id === file.id);
               return (
                 <li key={file.id}>
                   <button
                     onClick={() => onOpenFile(file)}
-                    className={`flex h-[24px] items-center px-[22px] w-full text-left hover:bg-[#f3f3f7] transition-colors cursor-pointer ${
-                      isOpen ? 'bg-[#f3f3f7]' : ''
+                    className={`flex h-[24px] items-center px-[18px] w-full text-left transition-colors cursor-pointer hover:bg-gradient-to-r hover:from-transparent hover:to-[#f3f3f7] ${
+                      isOpen ? 'bg-gradient-to-r from-transparent to-[#f3f3f7]' : ''
                     }`}
                   >
                     <span className="text-[13px] text-[#292929] truncate">{file.name}</span>
