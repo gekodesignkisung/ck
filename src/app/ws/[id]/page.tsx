@@ -49,7 +49,7 @@ export default function WorkspacePage() {
   });
   const [channels, setChannels] = useState<Channel[]>(INITIAL_CHANNELS);
   const [members, setMembers] = useState<Member[]>([...AI_AGENTS]);
-  const [recentFiles] = useState<RecentFile[]>(INITIAL_FILES);
+  const [recentFiles, setRecentFiles] = useState<RecentFile[]>(INITIAL_FILES);
   const [openPanels, setOpenPanels] = useState<Panel[]>([
     {
       id: 'ch-general',
@@ -179,6 +179,13 @@ export default function WorkspacePage() {
     );
   }, []);
 
+  const handleAddFile = useCallback((file: RecentFile) => {
+    setRecentFiles((prev) => {
+      if (prev.find((f) => f.id === file.id)) return prev;
+      return [...prev, file];
+    });
+  }, []);
+
   // ── Sidebar actions ───────────────────────────────────────────────────────
 
   const handleOpenChannel = (ch: Channel) => {
@@ -221,6 +228,11 @@ export default function WorkspacePage() {
     openPanel({ id: '__file-browser__', type: 'file', title: '파일 탐색기' });
   };
 
+  const handleDeleteChannel = (channelId: string) => {
+    setChannels((prev) => prev.filter((c) => c.id !== channelId));
+    closePanel(channelId);
+  };
+
   const handleAddChannel = () => {
     const name = newChannelName.trim();
     if (!name) return;
@@ -258,6 +270,7 @@ export default function WorkspacePage() {
           onAddChannel={() => setShowAddChannel(true)}
           onAddMember={() => setShowAddMember(true)}
           onOpenChannel={handleOpenChannel}
+          onDeleteChannel={handleDeleteChannel}
           onOpenDM={handleOpenDM}
           onOpenFile={handleOpenFile}
           onOpenFileBrowser={handleOpenFileBrowser}
@@ -298,6 +311,8 @@ export default function WorkspacePage() {
                       onClose={closePanel}
                       onUpdatePanel={updatePanel}
                       onCopyUrl={handleCopyChannelUrl}
+                      onAddFile={handleAddFile}
+                      onOpenFile={handleOpenFile}
                     />
                   )}
                 </div>

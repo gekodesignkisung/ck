@@ -2,7 +2,7 @@
 
 import Image from 'next/image';
 import { useState, useRef, useEffect } from 'react';
-import type { Panel, Member, Message } from '@/types';
+import type { Panel, Member, Message, RecentFile } from '@/types';
 
 interface ChannelPanelProps {
   panel: Panel;
@@ -11,6 +11,8 @@ interface ChannelPanelProps {
   onClose?: (id: string) => void;
   onUpdatePanel: (id: string, updates: Partial<Panel>) => void;
   onCopyUrl?: (panelId: string) => void;
+  onAddFile?: (file: RecentFile) => void;
+  onOpenFile?: (file: RecentFile) => void;
 }
 
 export default function ChannelPanel({
@@ -20,6 +22,8 @@ export default function ChannelPanel({
   onClose,
   onUpdatePanel,
   onCopyUrl,
+  onAddFile,
+  onOpenFile,
 }: ChannelPanelProps) {
   const [inputText, setInputText] = useState('');
   const [isSending, setIsSending] = useState(false);
@@ -30,6 +34,7 @@ export default function ChannelPanel({
 
   const selectedMembers: Member[] = panel.selectedMembers ?? [];
   const messages: Message[] = panel.messages ?? [];
+  const attachedFiles: RecentFile[] = panel.attachedFiles ?? [];
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -69,6 +74,7 @@ export default function ChannelPanel({
     }
 
     let currentMessages = updatedMessages;
+    let currentFiles = attachedFiles;
     try {
       for (const agent of agents) {
         // Build history: only include messages from currentUser (user) and this specific agent (assistant).
@@ -83,6 +89,7 @@ export default function ChannelPanel({
           }));
 
         let replyContent: string;
+        let generatedFile: { name: string; content: string } | undefined;
         try {
           const res = await fetch('/api/chat', {
             method: 'POST',
@@ -94,13 +101,31 @@ export default function ChannelPanel({
               workingTask: agent.workingTask,
             }),
           });
-          const data = await res.json() as { content?: string; error?: string };
+          const data = await res.json() as { content?: string; error?: string; generatedFile?: { name: string; content: string } };
           replyContent = res.ok
             ? (data.content ?? '(응답 없음)')
             : (data.error ?? `오류 (${res.status})`);
+          if (res.ok && data.generatedFile) {
+            generatedFile = data.generatedFile;
+          }
         } catch (err) {
           replyContent = `네트워크 오류: ${err instanceof Error ? err.message : '알 수 없는 오류'}`;
         }
+
+        // If agent generated a file, add it to attachedFiles
+        let msgFileRef: { id: string; name: string } | undefined;
+        if (generatedFile) {
+          const newFile: RecentFile = {
+            id: `file-${Date.now()}-${agent.id}`,
+            name: generatedFile.name,
+            content: generatedFile.content,
+            updatedAt: new Date(),
+          };
+          currentFiles = [...currentFiles, newFile];
+          msgFileRef = { id: newFile.id, name: newFile.name };
+          onAddFile?.(newFile);
+        }
+
         const reply: Message = {
           id: `msg-${Date.now()}-${agent.id}`,
           senderId: agent.id,
@@ -109,9 +134,10 @@ export default function ChannelPanel({
           senderInitial: agent.initial,
           content: replyContent,
           createdAt: new Date(),
+          generatedFile: msgFileRef,
         };
         currentMessages = [...currentMessages, reply];
-        onUpdatePanel(panel.id, { messages: currentMessages, isTyping: false });
+        onUpdatePanel(panel.id, { messages: currentMessages, attachedFiles: currentFiles, isTyping: false });
       }
     } finally {
       onUpdatePanel(panel.id, { isTyping: false });
@@ -153,6 +179,15 @@ export default function ChannelPanel({
     setTimeout(() => setCopied(false), 2000);
   };
 
+  const handleFileClick = (fileId: string) => {
+    const file = attachedFiles.find((f) => f.id === fileId);
+    if (file && onOpenFile) {
+      onOpenFile(file);
+    } else {
+      setActiveTab('files');
+    }
+  };
+
   return (
     <div
       className="flex flex-col h-full min-w-0 flex-1"
@@ -172,7 +207,7 @@ export default function ChannelPanel({
               const isActive = activeTab === tab;
               const label = tab === 'channel' ? '채널' : tab === 'files' ? '파일' : '멤버';
               const count = tab === 'files'
-                ? (panel.attachedFiles?.length ?? 0)
+                ? attachedFiles.length
                 : tab === 'members'
                 ? selectedMembers.length
                 : null;
@@ -264,10 +299,38 @@ export default function ChannelPanel({
             );
           })}
         </div>
+
+      ) : activeTab === 'files' ? (
+        /* Files tab view */
+        <div className="flex-1 overflow-y-auto scrollbar-thin px-4 py-4 flex flex-col gap-2 min-h-0">
+          {attachedFiles.length === 0 ? (
+            <div className="flex-1 flex items-center justify-center text-[#ccc] text-[13px]">
+              생성된 파일이 없습니다
+            </div>
+          ) : (
+            attachedFiles.map((file) => (
+              <button
+                key={file.id}
+                type="button"
+                onClick={() => onOpenFile ? onOpenFile(file) : undefined}
+                className="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-black/5 text-left transition-colors cursor-pointer"
+              >
+                <FileIcon />
+                <div className="flex flex-col min-w-0">
+                  <span className="text-[13px] text-[#292929] truncate">{file.name}</span>
+                  <span className="text-[11px] text-[#999]">
+                    {new Date(file.updatedAt).toLocaleDateString('ko-KR')}
+                  </span>
+                </div>
+              </button>
+            ))
+          )}
+        </div>
+
       ) : (
         /* Messages area */
         <div className="flex-1 overflow-y-auto scrollbar-thin px-4 py-4 flex flex-col gap-3 min-h-0">
-          {messages.length === 0 && activeTab === 'channel' && (
+          {messages.length === 0 && (
             <div className="flex-1 flex items-center justify-center text-[#ccc] text-[13px]">
               대화를 시작해보세요
             </div>
@@ -292,13 +355,25 @@ export default function ChannelPanel({
                       {new Date(msg.createdAt).toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit', hour12: false })}
                     </span>
                   </span>
-                  <div
-                    className={`px-3 py-2 rounded-2xl text-[14px] text-[#292929] whitespace-pre-wrap break-words ${
-                      isMe ? 'bg-[#507096] text-white rounded-tr-sm' : 'bg-[#f3f3f6] rounded-tl-sm'
-                    }`}
-                  >
-                    {msg.content}
-                  </div>
+                  {msg.content && (
+                    <div
+                      className={`px-3 py-2 rounded-2xl text-[14px] text-[#292929] whitespace-pre-wrap break-words ${
+                        isMe ? 'bg-[#507096] text-white rounded-tr-sm' : 'bg-[#f3f3f6] rounded-tl-sm'
+                      }`}
+                    >
+                      {msg.content}
+                    </div>
+                  )}
+                  {msg.generatedFile && (
+                    <button
+                      type="button"
+                      onClick={() => handleFileClick(msg.generatedFile!.id)}
+                      className="flex items-center gap-2 px-3 py-2 rounded-xl bg-white border border-[#e0e0e0] hover:border-[#507096] hover:bg-[#f0f5fa] transition-colors cursor-pointer text-left shadow-sm"
+                    >
+                      <FileIcon />
+                      <span className="text-[13px] text-[#507096] font-medium">{msg.generatedFile.name}</span>
+                    </button>
+                  )}
                 </div>
               </div>
             );
@@ -413,6 +488,16 @@ function CheckIcon() {
   return (
     <svg width="14" height="14" viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg">
       <path d="M2 7L5.5 10.5L12 4" stroke="#22c55e" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
+function FileIcon() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <path d="M9 1H3a1 1 0 0 0-1 1v12a1 1 0 0 0 1 1h10a1 1 0 0 0 1-1V6L9 1z" stroke="#507096" strokeWidth="1.3" strokeLinejoin="round" />
+      <path d="M9 1v5h5" stroke="#507096" strokeWidth="1.3" strokeLinejoin="round" />
+      <path d="M5 9h6M5 11.5h4" stroke="#507096" strokeWidth="1.3" strokeLinecap="round" />
     </svg>
   );
 }

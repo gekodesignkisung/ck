@@ -15,6 +15,7 @@ interface SidebarProps {
   onAddChannel: () => void;
   onAddMember: () => void;
   onOpenChannel: (channel: Channel) => void;
+  onDeleteChannel: (channelId: string) => void;
   onOpenDM: (member: Member) => void;
   onOpenFile: (file: RecentFile) => void;
   onOpenFileBrowser: () => void;
@@ -30,6 +31,7 @@ export default function Sidebar({
   onAddChannel,
   onAddMember,
   onOpenChannel,
+  onDeleteChannel,
   onOpenDM,
   onOpenFile,
   onOpenFileBrowser,
@@ -37,6 +39,7 @@ export default function Sidebar({
 }: SidebarProps) {
   const [collapsed, setCollapsed] = useState(false);
   const [tooltip, setTooltip] = useState<{ text: string; x: number; y: number } | null>(null);
+  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
   const tooltipTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const showTooltip = (text: string, e: React.MouseEvent) => {
@@ -103,7 +106,7 @@ export default function Sidebar({
             {channels.map((ch) => {
               const isOpen = openPanels.some((p) => p.type === 'channel' && p.id === ch.id);
               return (
-                <li key={ch.id}>
+                <li key={ch.id} className="group relative">
                   <button
                     onClick={() => onOpenChannel(ch)}
                     className={`flex h-[32px] items-center gap-[6px] px-[18px] w-full text-left transition-colors cursor-pointer hover:bg-gradient-to-r hover:from-transparent hover:to-[#f3f3f7] ${
@@ -117,6 +120,14 @@ export default function Sidebar({
                     <span className="text-[13px] font-semibold text-[#292929] truncate">
                       {ch.name}
                     </span>
+                  </button>
+                  <button
+                    type="button"
+                    title="채널 삭제"
+                    onClick={(e) => { e.stopPropagation(); setConfirmDeleteId(ch.id); }}
+                    className="absolute right-[8px] top-1/2 -translate-y-1/2 w-[20px] h-[20px] flex items-center justify-center rounded opacity-0 group-hover:opacity-100 hover:bg-black/10 transition-opacity cursor-pointer text-[#999] hover:text-[#e05555]"
+                  >
+                    <TrashIcon />
                   </button>
                 </li>
               );
@@ -221,6 +232,39 @@ export default function Sidebar({
         </section>
       </div>
 
+      {/* Confirm delete modal */}
+      {confirmDeleteId && (
+        <div
+          className="fixed inset-0 bg-black/30 flex items-center justify-center z-50"
+          onClick={() => setConfirmDeleteId(null)}
+        >
+          <div
+            className="bg-white rounded-xl shadow-xl p-6 w-[320px] flex flex-col gap-4"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <p className="text-[14px] text-[#292929] leading-relaxed">
+              삭제한 채널은 복구할 수 없습니다. 정말 삭제하시겠습니끼?
+            </p>
+            <div className="flex gap-2 justify-end">
+              <button
+                type="button"
+                onClick={() => setConfirmDeleteId(null)}
+                className="px-4 py-2 rounded-lg text-[14px] text-[#666] hover:bg-[#f3f3f7] transition-colors cursor-pointer"
+              >
+                취소
+              </button>
+              <button
+                type="button"
+                onClick={() => { onDeleteChannel(confirmDeleteId); setConfirmDeleteId(null); }}
+                className="px-4 py-2 rounded-lg text-[14px] text-white font-semibold bg-[#e05555] hover:bg-[#c94444] transition-colors cursor-pointer"
+              >
+                삭제
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Bottom user profile */}
       <div className="flex items-center justify-between px-[15px] py-[15px] shrink-0 border-t border-[#f0f0f0]">
         <div className="flex gap-[10px] items-center min-w-0">
@@ -242,5 +286,13 @@ export default function Sidebar({
         </button>
       </div>
     </aside>
+  );
+}
+
+function TrashIcon() {
+  return (
+    <svg width="13" height="13" viewBox="0 0 13 13" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <path d="M1.5 3h10M4.5 3V2a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1v1M5.5 6v4M7.5 6v4M2.5 3l.5 8a1 1 0 0 0 1 1h5a1 1 0 0 0 1-1l.5-8" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
   );
 }
