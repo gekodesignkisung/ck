@@ -67,10 +67,16 @@ export default function ChannelPanel({
 
     let currentMessages = updatedMessages;
     for (const agent of agents) {
-      const history = currentMessages.slice(-20).map((m) => ({
-        role: m.senderId === currentUser.id ? 'user' : 'assistant' as 'user' | 'assistant',
-        content: m.content,
-      }));
+      // Build history: only include messages from currentUser (user) and this specific agent (assistant).
+      // Messages from other agents are skipped to avoid a history ending with 'assistant' role.
+      const history = currentMessages
+        .slice(-40)
+        .filter((m) => m.senderId === currentUser.id || m.senderId === agent.id)
+        .slice(-20)
+        .map((m) => ({
+          role: m.senderId === currentUser.id ? 'user' : 'assistant' as 'user' | 'assistant',
+          content: m.content,
+        }));
 
       try {
         const res = await fetch('/api/chat', {

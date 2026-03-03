@@ -53,7 +53,7 @@ export default function WorkspacePage() {
       id: 'ch-general',
       type: 'channel',
       title: 'General',
-      selectedMembers: [AI_AGENTS[0], AI_AGENTS[1]],
+      selectedMembers: [],
       attachedFiles: CHANNEL_SEED_FILES['ch-general'] ?? [],
       messages: [],
     },

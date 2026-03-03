@@ -17,7 +17,7 @@ const CHANNEL_INFO: Record<string, {
     name: 'General',
     color: '#f3e3ba',
     fileSeeds: [],
-    defaultMembers: [AI_AGENTS[0], AI_AGENTS[1]],
+    defaultMembers: [],
   },
   'ch-sample': {
     name: 'Sample',
