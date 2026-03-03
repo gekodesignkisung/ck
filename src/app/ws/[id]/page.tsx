@@ -34,6 +34,8 @@ export default function WorkspacePage() {
   const router = useRouter();
   const id = params.id as string;
   const panelScrollRef = useRef<HTMLDivElement>(null);
+  // 닫힌 패널 상태 보존 (key: panelId)
+  const panelStore = useRef<Record<string, Panel>>({});
 
   const [workspaceName, setWorkspaceName] = useState('워크스페이스');
   const [currentUser, setCurrentUser] = useState<Member>({
@@ -152,17 +154,28 @@ export default function WorkspacePage() {
   const openPanel = useCallback((panel: Panel) => {
     setOpenPanels((prev) => {
       if (prev.find((p) => p.id === panel.id)) return prev;
-      return [...prev, panel];
+      // 이전에 저장된 상태가 있으면 복원
+      const saved = panelStore.current[panel.id];
+      return [...prev, saved ?? panel];
     });
   }, []);
 
   const closePanel = useCallback((panelId: string) => {
-    setOpenPanels((prev) => prev.filter((p) => p.id !== panelId));
+    setOpenPanels((prev) => {
+      const target = prev.find((p) => p.id === panelId);
+      if (target) panelStore.current[panelId] = target;
+      return prev.filter((p) => p.id !== panelId);
+    });
   }, []);
 
   const updatePanel = useCallback((panelId: string, updates: Partial<Panel>) => {
     setOpenPanels((prev) =>
-      prev.map((p) => (p.id === panelId ? { ...p, ...updates } : p))
+      prev.map((p) => {
+        if (p.id !== panelId) return p;
+        const updated = { ...p, ...updates };
+        panelStore.current[panelId] = updated; // 실시간으로 store도 동기화
+        return updated;
+      })
     );
   }, []);
 

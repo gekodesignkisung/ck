@@ -22,6 +22,7 @@ export default function ChannelPanel({
   onCopyUrl,
 }: ChannelPanelProps) {
   const [inputText, setInputText] = useState('');
+  const [isSending, setIsSending] = useState(false);
   const [showMemberPicker, setShowMemberPicker] = useState(false);
   const [copied, setCopied] = useState(false);
   const [activeTab, setActiveTab] = useState<'channel' | 'files' | 'members'>('channel');
@@ -39,7 +40,8 @@ export default function ChannelPanel({
   }, [messages, panel.isTyping]);
 
   const handleSend = async () => {
-    if (!inputText.trim()) return;
+    if (!inputText.trim() || isSending) return;
+    setIsSending(true);
     const text = inputText.trim();
     const newMessage: Message = {
       id: `msg-${Date.now()}`,
@@ -62,53 +64,59 @@ export default function ChannelPanel({
       : allAgents;
     if (agents.length === 0) {
       onUpdatePanel(panel.id, { isTyping: false });
+      setIsSending(false);
       return;
     }
 
     let currentMessages = updatedMessages;
-    for (const agent of agents) {
-      // Build history: only include messages from currentUser (user) and this specific agent (assistant).
-      // Messages from other agents are skipped to avoid a history ending with 'assistant' role.
-      const history = currentMessages
-        .slice(-40)
-        .filter((m) => m.senderId === currentUser.id || m.senderId === agent.id)
-        .slice(-20)
-        .map((m) => ({
-          role: m.senderId === currentUser.id ? 'user' : 'assistant' as 'user' | 'assistant',
-          content: m.content,
-        }));
+    try {
+      for (const agent of agents) {
+        // Build history: only include messages from currentUser (user) and this specific agent (assistant).
+        // Messages from other agents are skipped to avoid a history ending with 'assistant' role.
+        const history = currentMessages
+          .slice(-40)
+          .filter((m) => m.senderId === currentUser.id || m.senderId === agent.id)
+          .slice(-20)
+          .map((m) => ({
+            role: m.senderId === currentUser.id ? 'user' : 'assistant' as 'user' | 'assistant',
+            content: m.content,
+          }));
 
-      try {
-        const res = await fetch('/api/chat', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            messages: history,
-            agentId: agent.id,
-            agentName: agent.name,
-            workingTask: agent.workingTask,
-          }),
-        });
-        const data = await res.json() as { content?: string; error?: string };
-        const content = res.ok
-          ? (data.content ?? '(응답 없음)')
-          : (data.error ?? `오류 (${res.status})`);
+        let replyContent: string;
+        try {
+          const res = await fetch('/api/chat', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              messages: history,
+              agentId: agent.id,
+              agentName: agent.name,
+              workingTask: agent.workingTask,
+            }),
+          });
+          const data = await res.json() as { content?: string; error?: string };
+          replyContent = res.ok
+            ? (data.content ?? '(응답 없음)')
+            : (data.error ?? `오류 (${res.status})`);
+        } catch (err) {
+          replyContent = `네트워크 오류: ${err instanceof Error ? err.message : '알 수 없는 오류'}`;
+        }
         const reply: Message = {
           id: `msg-${Date.now()}-${agent.id}`,
           senderId: agent.id,
           senderName: agent.name,
           senderColor: agent.color,
           senderInitial: agent.initial,
-          content,
+          content: replyContent,
           createdAt: new Date(),
         };
         currentMessages = [...currentMessages, reply];
         onUpdatePanel(panel.id, { messages: currentMessages, isTyping: false });
-      } catch {
-        // continue to next agent on error
       }
+    } finally {
+      onUpdatePanel(panel.id, { isTyping: false });
+      setIsSending(false);
     }
-    onUpdatePanel(panel.id, { isTyping: false });
   };
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
@@ -278,7 +286,12 @@ export default function ChannelPanel({
                   {msg.senderInitial}
                 </span>
                 <div className={`flex flex-col gap-1 max-w-[70%] ${isMe ? 'items-end' : 'items-start'}`}>
-                  <span className="text-[11px] text-[#999]">{msg.senderName}</span>
+                  <span className="text-[11px] text-[#999] flex items-center gap-[6px]">
+                    {msg.senderName}
+                    <span className="text-[10px] text-[#bbb]">
+                      {new Date(msg.createdAt).toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit', hour12: false })}
+                    </span>
+                  </span>
                   <div
                     className={`px-3 py-2 rounded-2xl text-[14px] text-[#292929] whitespace-pre-wrap break-words ${
                       isMe ? 'bg-[#507096] text-white rounded-tr-sm' : 'bg-[#f3f3f6] rounded-tl-sm'
@@ -380,8 +393,10 @@ export default function ChannelPanel({
               className="flex-1 bg-transparent text-[14px] text-[#292929] placeholder-[#aaa] resize-none outline-none leading-normal h-full"
             />
             <button
+              type="button"
               onClick={handleSend}
-              className="w-[36px] h-[36px] shrink-0 flex items-center justify-center cursor-pointer"
+              disabled={isSending}
+              className="w-[36px] h-[36px] shrink-0 flex items-center justify-center cursor-pointer disabled:opacity-40"
               title="전송"
             >
               <Image src="/icon-send-message.svg" alt="send" width={36} height={36} />
