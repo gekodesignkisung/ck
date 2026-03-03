@@ -125,9 +125,9 @@ export default function Sidebar({
                     type="button"
                     title="채널 삭제"
                     onClick={(e) => { e.stopPropagation(); setConfirmDeleteId(ch.id); }}
-                    className="absolute right-[8px] top-1/2 -translate-y-1/2 w-[20px] h-[20px] flex items-center justify-center rounded opacity-0 group-hover:opacity-100 hover:bg-black/10 transition-opacity cursor-pointer text-[#999] hover:text-[#e05555]"
+                    className="absolute right-[12px] top-1/2 -translate-y-1/2 w-[20px] h-[20px] flex items-center justify-center rounded opacity-0 group-hover:opacity-100 hover:bg-black/10 transition-opacity cursor-pointer"
                   >
-                    <TrashIcon />
+                    <Image src="/icon-delete.svg" alt="삭제" width={20} height={20} />
                   </button>
                 </li>
               );
@@ -243,7 +243,7 @@ export default function Sidebar({
             onClick={(e) => e.stopPropagation()}
           >
             <p className="text-[14px] text-[#292929] leading-relaxed">
-              삭제한 채널은 복구할 수 없습니다. 정말 삭제하시겠습니끼?
+              삭제한 채널은 복구할 수 없습니다.<br />정말 삭제하시겠습니끼?
             </p>
             <div className="flex gap-2 justify-end">
               <button
@@ -289,10 +289,3 @@ export default function Sidebar({
   );
 }
 
-function TrashIcon() {
-  return (
-    <svg width="13" height="13" viewBox="0 0 13 13" fill="none" xmlns="http://www.w3.org/2000/svg">
-      <path d="M1.5 3h10M4.5 3V2a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1v1M5.5 6v4M7.5 6v4M2.5 3l.5 8a1 1 0 0 0 1 1h5a1 1 0 0 0 1-1l.5-8" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" />
-    </svg>
-  );
-}
