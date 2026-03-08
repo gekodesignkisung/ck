@@ -86,20 +86,20 @@ export default function WorkspacesPage() {
   if (!user) return null;
 
   return (
-    <div className="flex flex-col min-h-screen bg-white">
+    <div className="flex flex-col min-h-screen" style={{ background: '#F2F8FF' }}>
       {/* Header */}
-      <header className="flex h-[56px] items-center justify-between px-6 border-b border-[#f0f0f0] shrink-0">
+      <header className="flex h-[50px] items-center justify-between px-6 bg-white shrink-0">
         <div className="flex items-center gap-2.5">
-          <div className="w-8 h-8 rounded-full bg-[#e8f5e9] flex items-center justify-center overflow-hidden">
-            <Image src="/logo-craken.svg" alt="Craken" width={22} height={22} />
-          </div>
+         
+            <Image src="/icon-profile.svg" alt="Craken" width={30} height={30} />
+         
           <span className="text-[14px] font-semibold text-[#1a1a1a]">{user.name}</span>
         </div>
         <button
           onClick={handleLogout}
           className="flex items-center gap-1.5 text-[13px] text-[#555] hover:text-[#1a1a1a] px-3 py-1.5 rounded-lg hover:bg-[#f5f5f5] transition-colors"
         >
-          <LogoutIcon />
+          <Image src="/icon-logout.svg" alt="Craken" width={24} height={24} />
           로그아웃
         </button>
       </header>
@@ -114,10 +114,10 @@ export default function WorkspacesPage() {
                 key={ws.id}
                 onClick={() => router.push(`/ws/${ws.id}`)}
                 className="flex flex-col justify-between p-5 rounded-2xl text-left cursor-pointer transition-all hover:shadow-md hover:-translate-y-[1px]"
-                style={{ background: '#f5f5f7', minHeight: 160 }}
+                style={{ background: 'white', minHeight: 160 }}
               >
                 <div className="flex flex-col gap-1">
-                  <span className="text-[15px] font-bold text-[#1a1a1a]">{ws.name}</span>
+                  <span className="text-[24px] font-semibold" style={{ color: '#333333' }}>{ws.name}</span>
                   <span className="text-[12px] text-[#888]">/ws/{ws.id}</span>
                 </div>
                 <div className="flex flex-col gap-[3px] mt-4">
@@ -137,7 +137,7 @@ export default function WorkspacesPage() {
             {/* New workspace card */}
             <button
               onClick={() => setShowCreate(true)}
-              className="flex flex-col items-center justify-center gap-2 rounded-2xl border-2 border-dashed border-[#d5d5d5] hover:border-[#507096] hover:bg-[#f0f4f8] transition-all cursor-pointer"
+              className="flex flex-col items-center justify-center gap-2 rounded-2xl border-2 border-dashed border-[#d5d5d5] bg-white hover:border-[#507096] hover:bg-[#f0f4f8] transition-all cursor-pointer"
               style={{ minHeight: 160 }}
             >
               <span className="text-[28px] leading-none text-[#bbb] font-light">+</span>

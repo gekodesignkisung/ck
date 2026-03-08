@@ -339,7 +339,12 @@ export default function WorkspacePage() {
 
       {/* Add Member Modal */}
       {showAddMember && (
-        <Modal title="새 에이전트 추가" onClose={() => setShowAddMember(false)} onConfirm={handleAddMember}>
+        <Modal
+          title="새 에이전트 추가"
+          small
+          onClose={() => setShowAddMember(false)}
+          onConfirm={handleAddMember}
+        >
           <input
             autoFocus
             type="text"
@@ -347,7 +352,7 @@ export default function WorkspacePage() {
             value={newMemberName}
             onChange={(e) => setNewMemberName(e.target.value)}
             onKeyDown={(e) => e.key === 'Enter' && handleAddMember()}
-            className="w-full border border-[#ddd] rounded-lg px-3 py-2 text-[14px] outline-none focus:border-[#507096]"
+            className="w-full border border-[#ddd] rounded-lg px-3 py-2 text-[13px] outline-none focus:border-[#507096]"
           />
         </Modal>
       )}
@@ -358,31 +363,32 @@ export default function WorkspacePage() {
 // ── Reusable modal ────────────────────────────────────────────────────────────
 
 function Modal({
-  title, children, onClose, onConfirm,
+  title, children, onClose, onConfirm, small,
 }: {
   title: string;
   children: React.ReactNode;
   onClose: () => void;
   onConfirm: () => void;
+  small?: boolean;
 }) {
   return (
     <div className="fixed inset-0 bg-black/30 flex items-center justify-center z-50" onClick={onClose}>
       <div
-        className="bg-white rounded-xl shadow-xl p-6 w-[340px] flex flex-col gap-4"
+        className={`bg-white rounded-xl shadow-xl p-6 ${small ? 'w-[280px]' : 'w-[340px]'} flex flex-col gap-4`}
         onClick={(e) => e.stopPropagation()}
       >
-        <h2 className="text-[16px] font-bold text-[#292929]">{title}</h2>
+        <h2 className={`${small ? 'text-[14px]' : 'text-[16px]'} font-bold text-[#292929]`}>{title}</h2>
         {children}
         <div className="flex gap-2 justify-end">
           <button
             onClick={onClose}
-            className="px-4 py-2 rounded-lg text-[14px] text-[#666] hover:bg-[#f3f3f7] transition-colors cursor-pointer"
+            className={`px-4 py-2 rounded-lg ${small ? 'text-[13px]' : 'text-[14px]'} text-[#666] hover:bg-[#f3f3f7] transition-colors cursor-pointer`}
           >
             취소
           </button>
           <button
             onClick={onConfirm}
-            className="px-4 py-2 rounded-lg text-[14px] text-white font-semibold transition-colors cursor-pointer"
+            className={`px-4 py-2 rounded-lg ${small ? 'text-[13px]' : 'text-[14px]'} text-white font-semibold transition-colors cursor-pointer`}
             style={{ background: '#507096' }}
           >
             추가

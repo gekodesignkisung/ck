@@ -40,6 +40,10 @@ export default function Sidebar({
   const [collapsed, setCollapsed] = useState(false);
   const [tooltip, setTooltip] = useState<{ text: string; x: number; y: number } | null>(null);
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
+  const [showMemberMenu, setShowMemberMenu] = useState(false);
+  const [showInvitePopup, setShowInvitePopup] = useState(false);
+  const [inviteEmail, setInviteEmail] = useState('');
+  const memberMenuRef = useRef<HTMLDivElement>(null);
   const tooltipTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const showTooltip = (text: string, e: React.MouseEvent) => {
@@ -65,14 +69,14 @@ export default function Sidebar({
         </span>
       )}
       {/* Workspace title bar */}
-      <div className="flex h-[50px] items-center px-[10px] shrink-0 bg-[#f3f3f7] relative">
+      <div className="flex h-[50px] items-center px-[6px] shrink-0 bg-[#f3f3f7] relative">
         <button
           type="button"
           onClick={onGoHome}
           title="워크스페이스 목록"
           className="flex items-center justify-center hover:opacity-70 transition-opacity cursor-pointer shrink-0"
         >
-          <Image src="/icon-craken.svg" alt="Craken" width={24} height={24} />
+          <Image src="/icon-craken-3.svg" alt="Craken" width={30} height={30} />
         </button>
         <span className="absolute left-1/2 -translate-x-1/2 text-[14px] font-semibold text-[#292929] whitespace-nowrap truncate max-w-[140px]">
           {workspaceName}
@@ -87,6 +91,42 @@ export default function Sidebar({
       </div>
 
       {/* Scrollable menu area */}
+      {showInvitePopup && (
+        <div className="fixed inset-0 bg-black/30 flex items-center justify-center z-50" onClick={() => setShowInvitePopup(false)}>
+          <div
+            className="bg-white rounded-xl shadow-xl p-6 w-[340px] flex flex-col gap-4"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h2 className="text-[16px] font-bold text-[#292929]">사람 초대</h2>
+            <input
+              type="email"
+              value={inviteEmail}
+              onChange={(e) => setInviteEmail(e.target.value)}
+              placeholder="이메일 주소"
+              className="w-full border border-gray-300 rounded px-3 py-2 mb-4"
+            />
+            <div className="flex gap-2 justify-end">
+              <button
+                onClick={() => { setShowInvitePopup(false); setInviteEmail(''); }}
+                className="px-4 py-2 rounded-lg text-[14px] text-[#666] hover:bg-[#f3f3f7] transition-colors cursor-pointer"
+              >
+                취소
+              </button>
+              <button
+                onClick={() => {
+                  console.log('invite', inviteEmail);
+                  setShowInvitePopup(false);
+                  setInviteEmail('');
+                }}
+                className="px-4 py-2 rounded-lg text-[14px] text-white font-semibold transition-colors cursor-pointer"
+                style={{ background: '#507096' }}
+              >
+                초대하기
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
       <div className="flex-1 flex flex-col gap-5 overflow-y-auto scrollbar-thin py-2 min-h-0">
         {/* Channel section */}
         <section>
@@ -141,13 +181,34 @@ export default function Sidebar({
             <div className="flex gap-[6px] items-center">
               <span className="text-[14px] font-semibold text-[#999]">Member</span>
             </div>
-            <button
-              onClick={onAddMember}
-              className="w-[24px] h-[24px] flex items-center justify-center rounded hover:bg-black/5 transition-colors cursor-pointer"
-              title="에이전트 추가"
-            >
-              <Image src="/icon-add.svg" alt="add" width={24} height={24} />
-            </button>
+            <div className="relative">
+              <button
+                onClick={() => setShowMemberMenu((v) => !v)}
+                className="w-[24px] h-[24px] flex items-center justify-center rounded hover:bg-black/5 transition-colors cursor-pointer"
+                title="더보기"
+              >
+                <Image src="/icon-add.svg" alt="add" width={24} height={24} />
+              </button>
+              {showMemberMenu && (
+                <div
+                  ref={memberMenuRef}
+                  className="absolute right-0 mt-1 w-[120px] bg-white border border-[#ccc] rounded shadow-lg z-50"
+                >
+                  <button
+                    className="w-full text-left px-3 py-2 hover:bg-[#f0f0f0]"
+                    onClick={() => { setShowMemberMenu(false); onAddMember(); }}
+                  >
+                    에이전트 추가
+                  </button>
+                  <button
+                    className="w-full text-left px-3 py-2 hover:bg-[#f0f0f0]"
+                    onClick={() => { setShowMemberMenu(false); setShowInvitePopup(true); }}
+                  >
+                    사람 초대
+                  </button>
+                </div>
+              )}
+            </div>
           </div>
           <ul className="flex flex-col gap-px">
             {members.map((member) => {

@@ -24,13 +24,8 @@ export default function LoginPage() {
     <div className="flex items-center justify-center h-screen" style={{ background: '#F2F8FF' }}>
       <div className="flex flex-col items-center gap-10">
         <div className="flex items-center gap-10">
-          <Image src="/logo-craken.svg" alt="Craken" width={120} height={120} />
-          <div className="flex flex-col gap-1">
-            <span className="text-white font-bold text-[36px] tracking-[0.2em]">CRAKEN</span>
-            <p className="text-white/60 font-regular text-[16px]">
-              An intelligent environment for scientific research.
-            </p>
-          </div>
+          <Image src="craken-logo-v.svg" alt="Craken" width={320} height={460}/>
+
         </div>
         <button
           onClick={handleGoogleLogin}
