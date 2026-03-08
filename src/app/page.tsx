@@ -21,7 +21,7 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="flex items-center justify-center h-screen" style={{ background: '#507096' }}>
+    <div className="flex items-center justify-center h-screen" style={{ background: '#F2F8FF' }}>
       <div className="flex flex-col items-center gap-10">
         <div className="flex items-center gap-10">
           <Image src="/logo-craken.svg" alt="Craken" width={120} height={120} />
