@@ -3,7 +3,7 @@
 import { useState, useCallback, useEffect, useRef } from 'react';
 import { useParams } from 'next/navigation';
 import ChannelPanel from '@/components/ChannelPanel';
-import type { Member, Message, Panel, RecentFile } from '@/types';
+import type { Member, Panel } from '@/types';
 import { WORKING_TASKS, AI_AGENTS } from '@/lib/constants';
 
 const CHANNEL_INFO: Record<string, { name: string; color: string; defaultMembers: Member[] }> = {
@@ -150,42 +150,6 @@ export default function StandaloneChannelPage() {
     }, 2000);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [panel]);
-
-  // 8초마다 Blob 폴링 → 다른 창에서 추가된 메시지 반영
-  useEffect(() => {
-    const timer = setInterval(async () => {
-      if (!isLoaded.current) return;
-      try {
-        const res = await fetch(`/api/ws-data?id=${wsId}`);
-        if (!res.ok) return;
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const wsData: any = await res.json();
-        if (!wsData) return;
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const allPanels: any[] = [...(wsData.openPanels ?? []), ...Object.values(wsData.closedPanels ?? {})];
-        const found = allPanels.find((p) => p.id === chId);
-        if (found) {
-          // wsDataRef를 최신 서버 데이터로 갱신
-          wsDataRef.current = wsData;
-          setPanel((prev) => {
-            const sp = deserializePanel(found);
-            const pMsgs = prev.messages ?? [];
-            const sMsgs = sp.messages ?? [];
-            // ID 기준 합집합 병합 → 어느 쪽도 메시지를 잃지 않음
-            const mergedMap = new Map<string, Message>();
-            for (const m of pMsgs) mergedMap.set(m.id, m);
-            for (const m of sMsgs) if (!mergedMap.has(m.id)) mergedMap.set(m.id, m);
-            const merged = Array.from(mergedMap.values()).sort(
-              (a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
-            );
-            return merged.length > pMsgs.length ? { ...prev, messages: merged } : prev;
-          });
-        }
-      } catch { /* 무시 */ }
-    }, 8000);
-    return () => clearInterval(timer);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [wsId, chId]);
 
   const updatePanel = useCallback((_id: string, updates: Partial<Panel>) => {
     locallyModified.current = true;

@@ -6,7 +6,7 @@ import { useParams, useRouter } from 'next/navigation';
 import Sidebar from '@/components/Sidebar';
 import ChannelPanel from '@/components/ChannelPanel';
 import FilePanel from '@/components/FilePanel';
-import type { Channel, Member, RecentFile, Panel, Message } from '@/types';
+import type { Channel, Member, RecentFile, Panel } from '@/types';
 import { WORKING_TASKS, AI_AGENTS, INITIAL_FILES } from '@/lib/constants';
 
 // ── Static seed data ─────────────────────────────────────────────────────────
@@ -206,38 +206,6 @@ export default function WorkspacePage() {
       }).catch(() => {});
     }, 2000);
   }, [workspaceName, channels, members, recentFiles, openPanels, id]);
-
-  // 8초마다 Blob 폴링 → 다른 창에서 추가된 메시지 반영 (ID 기반 병합)
-  useEffect(() => {
-    const timer = setInterval(async () => {
-      if (!isLoaded.current) return;
-      try {
-        const res = await fetch(`/api/ws-data?id=${id}`);
-        if (!res.ok) return;
-        const serverData = await res.json();
-        if (!serverData?.openPanels) return;
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const serverPanels: Panel[] = (serverData.openPanels as any[]).map(deserializePanel);
-        setOpenPanels((prev) =>
-          prev.map((p) => {
-            const sp = serverPanels.find((s) => s.id === p.id);
-            if (!sp) return p;
-            const pMsgs = p.messages ?? [];
-            const sMsgs = sp.messages ?? [];
-            // ID 기준 합집합 병합 → 어느 쪽도 메시지를 잃지 않음
-            const mergedMap = new Map<string, Message>();
-            for (const m of pMsgs) mergedMap.set(m.id, m);
-            for (const m of sMsgs) if (!mergedMap.has(m.id)) mergedMap.set(m.id, m);
-            const merged = Array.from(mergedMap.values()).sort(
-              (a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
-            );
-            return merged.length > pMsgs.length ? { ...p, messages: merged } : p;
-          })
-        );
-      } catch { /* 무시 */ }
-    }, 8000);
-    return () => clearInterval(timer);
-  }, [id]);
 
   // ── URL copy ──────────────────────────────────────────────────────────────
 
