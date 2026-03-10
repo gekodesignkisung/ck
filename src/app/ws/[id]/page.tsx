@@ -101,31 +101,20 @@ export default function WorkspacePage() {
 
   // Load workspace data from localStorage
   useEffect(() => {
-    const storedUser = localStorage.getItem('craken_user');
     const storedWs = localStorage.getItem('craken_workspaces');
-    let myName = 'Me';
-    let myEmail = '';
-
-    if (storedUser) {
-      const u = JSON.parse(storedUser) as { name: string; email: string };
-      myEmail = u.email ?? '';
-    }
 
     if (storedWs) {
-      const wsList = JSON.parse(storedWs) as Array<{ id: string; name: string; myNodeName: string }>;
+      const wsList = JSON.parse(storedWs) as Array<{ id: string; name: string }>;
       const ws = wsList.find((w) => w.id === id);
-      if (ws) {
-        setWorkspaceName(ws.name);
-        myName = ws.myNodeName;
-      }
+      if (ws) setWorkspaceName(ws.name);
     }
 
     const me: Member = {
       id: 'me',
-      name: `${myName}(Me)`,
-      email: myEmail,
+      name: 'User Name',
+      email: 'Username@company.com',
       color: '#80d96f',
-      initial: myName[0]?.toUpperCase() ?? 'M',
+      initial: 'U',
       isMe: true,
       status: 'awake',
     };
