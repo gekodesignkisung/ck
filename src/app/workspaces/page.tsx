@@ -37,6 +37,7 @@ export default function WorkspacesPage() {
   }, []);
 
   const handleLogout = () => {
+    localStorage.removeItem('craken_user');
     router.push('/');
   };
 
