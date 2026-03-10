@@ -179,6 +179,7 @@ export default function StandaloneChannelPage() {
               (a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
             );
             return merged.length > pMsgs.length ? { ...prev, messages: merged } : prev;
+          });
         }
       } catch { /* 무시 */ }
     }, 8000);
