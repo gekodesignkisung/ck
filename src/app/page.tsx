@@ -24,7 +24,7 @@ export default function LoginPage() {
     <div className="flex items-center justify-center h-screen" style={{ background: '#F2F8FF' }}>
       <div className="flex flex-col items-center gap-10">
         <div className="flex items-center gap-10">
-          <Image src="craken-logo-v.svg" alt="Craken" width={320} height={460}/>
+          <Image src="craken-logo-h.svg" alt="Craken" width={422} height={607}/>
 
         </div>
         <button

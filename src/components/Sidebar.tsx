@@ -2,13 +2,12 @@
 
 import Image from 'next/image';
 import { useState, useRef } from 'react';
-import type { Channel, Member, RecentFile, Panel } from '@/types';
+import type { Channel, Member, Panel } from '@/types';
 
 interface SidebarProps {
   workspaceName: string;
   channels: Channel[];
   members: Member[];
-  recentFiles: RecentFile[];
   currentUser: Member;
   openPanels: Panel[];
   onGoHome: () => void;
@@ -17,7 +16,7 @@ interface SidebarProps {
   onOpenChannel: (channel: Channel) => void;
   onDeleteChannel: (channelId: string) => void;
   onOpenDM: (member: Member) => void;
-  onOpenFile: (file: RecentFile) => void;
+  onOpenWikiHome: () => void;
   onOpenFileBrowser: () => void;
 }
 
@@ -25,7 +24,6 @@ export default function Sidebar({
   workspaceName,
   channels,
   members,
-  recentFiles,
   currentUser,
   onGoHome,
   onAddChannel,
@@ -33,7 +31,7 @@ export default function Sidebar({
   onOpenChannel,
   onDeleteChannel,
   onOpenDM,
-  onOpenFile,
+  onOpenWikiHome,
   onOpenFileBrowser,
   openPanels,
 }: SidebarProps) {
@@ -69,14 +67,14 @@ export default function Sidebar({
         </span>
       )}
       {/* Workspace title bar */}
-      <div className="flex h-[50px] items-center px-[6px] shrink-0 bg-[#f3f3f7] relative">
+      <div className="flex h-[50px] items-center pl-[15px] pr-[10px] shrink-0 bg-[#f3f3f7] relative">
         <button
           type="button"
           onClick={onGoHome}
           title="워크스페이스 목록"
           className="flex items-center justify-center hover:opacity-70 transition-opacity cursor-pointer shrink-0"
         >
-          <Image src="/icon-craken-3.svg" alt="Craken" width={30} height={30} />
+          <Image src="/icon-craken-3.svg" alt="Craken" width={24} height={24} />
         </button>
         <span className="absolute left-1/2 -translate-x-1/2 text-[14px] font-semibold text-[#292929] whitespace-nowrap truncate max-w-[140px]">
           {workspaceName}
@@ -84,7 +82,7 @@ export default function Sidebar({
         <button
           type="button"
           title="옵션"
-          className="w-[30px] h-[30px] flex items-center justify-center rounded hover:bg-black/5 transition-colors shrink-0 cursor-pointer ml-auto"
+          className="w-[24px] h-[24px] flex items-center justify-center rounded hover:bg-black/5 transition-colors shrink-0 cursor-pointer ml-auto"
         >
           <Image src="/icon-option.svg" alt="options" width={24} height={24} />
         </button>
@@ -259,38 +257,37 @@ export default function Sidebar({
           </ul>
         </section>
 
-        {/* Recent File section */}
-        <section>
-          <div className="flex h-[40px] items-center justify-between pl-[12px] pr-[10px]">
-            <div className="flex gap-[6px] items-center">
-              <span className="text-[14px] font-semibold text-[#999]">Recent File</span>
-            </div>
-            <button
-              onClick={onOpenFileBrowser}
-              className="w-[24px] h-[24px] flex items-center justify-center rounded hover:bg-black/5 transition-colors cursor-pointer"
-              title="파일 탐색기"
-            >
-              <Image src="/icon-folder.svg" alt="folder" width={24} height={24} />
-            </button>
-          </div>
-          <ul className="flex flex-col gap-px">
-            {recentFiles.map((file) => {
-              const isOpen = openPanels.some((p) => p.type === 'file' && p.id === file.id);
-              return (
-                <li key={file.id}>
-                  <button
-                    onClick={() => onOpenFile(file)}
-                    className={`flex h-[24px] items-center px-[18px] w-full text-left transition-colors cursor-pointer hover:bg-gradient-to-r hover:from-transparent hover:to-[#f3f3f7] ${
-                      isOpen ? 'bg-gradient-to-r from-transparent to-[#f3f3f7]' : ''
-                    }`}
-                  >
-                    <span className="text-[13px] text-[#292929] truncate">{file.name}</span>
-                  </button>
-                </li>
-              );
-            })}
-          </ul>
-        </section>
+        {/* Wiki home button */}
+        <div className="px-[10px]">
+        <button
+          onClick={onOpenWikiHome}
+          className="flex items-center justify-between w-full h-[36px] pl-[12px] pr-[10px] rounded-[10px] shrink-0 hover:brightness-95 transition-all cursor-pointer"
+          style={{ background: '#f5f5f5' }}
+        >
+          <span className="text-[14px] font-semibold text-[#292929]">Wiki home</span>
+          <span className="w-[20px] h-[20px] flex items-center justify-center">
+            <svg width="4" height="7" viewBox="0 0 6 10" fill="none">
+              <path d="M1 1L5 5L1 9" stroke="#999" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+            </svg>
+          </span>
+        </button>
+        </div>
+
+        {/* File manager button */}
+        <div className="px-[10px] mt-[-10px]">
+        <button
+          onClick={onOpenFileBrowser}
+          className="flex items-center justify-between w-full h-[36px] pl-[12px] pr-[10px] rounded-[10px] shrink-0 hover:brightness-95 transition-all cursor-pointer"
+          style={{ background: '#f5f5f5' }}
+        >
+          <span className="text-[14px] font-semibold text-[#292929]">File manager</span>
+          <span className="w-[20px] h-[20px] flex items-center justify-center">
+            <svg width="4" height="7" viewBox="0 0 6 10" fill="none">
+              <path d="M1 1L5 5L1 9" stroke="#999" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+            </svg>
+          </span>
+        </button>
+        </div>
       </div>
 
       {/* Confirm delete modal */}
@@ -336,9 +333,9 @@ export default function Sidebar({
             <Image src="/icon-profile.svg" alt="profile" width={40} height={40} />
           </span>
           <div className="flex flex-col gap-[2px] min-w-0">
-            <span className="text-[14px] font-bold text-[#292929] truncate">{currentUser.name}</span>
+            <span className="text-[13px] font-bold text-[#292929] truncate">{currentUser.name}</span>
             {currentUser.email && (
-              <span className="text-[13px] text-[#696969] truncate">{currentUser.email}</span>
+              <span className="text-[11px] text-[#696969] truncate">{currentUser.email}</span>
             )}
           </div>
         </div>

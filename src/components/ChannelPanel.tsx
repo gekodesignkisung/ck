@@ -31,6 +31,7 @@ export default function ChannelPanel({
   const [copied, setCopied] = useState(false);
   const [activeTab, setActiveTab] = useState<'channel' | 'files' | 'members'>('channel');
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   const selectedMembers: Member[] = panel.selectedMembers ?? [];
   const messages: Message[] = panel.messages ?? [];
@@ -221,8 +222,8 @@ export default function ChannelPanel({
                   key={tab}
                   type="button"
                   onClick={() => setActiveTab(tab)}
-                  className="flex items-center gap-1 h-[40px] px-5 text-[13px] text-[#333] cursor-pointer"
-                  style={{ background: bg, fontWeight: 500 }}
+                  className={`flex items-center gap-1 h-[40px] text-[13px] text-[#333] cursor-pointer ${tab === 'channel' ? 'px-5' : 'px-[15px]'}`}
+                  style={{ background: bg, fontWeight: 500, borderRadius: tab === 'channel' ? '10px 0 0 0' : tab === 'members' ? '0 10px 0 0' : undefined }}
                 >
                   <span>{label}</span>
                   {count !== null && <span>{count}</span>}
@@ -291,7 +292,7 @@ export default function ChannelPanel({
                     style={{ background: statusColor }}
                   />
                 </span>
-                <div className="flex flex-col gap-[2px]">
+                <div className="flex flex-col gap-0">
                   <span className="text-[14px] font-semibold text-[#292929]">{m.name}</span>
                   <span className="text-[12px] text-[#999]">{statusLabel}</span>
                 </div>
@@ -302,7 +303,7 @@ export default function ChannelPanel({
 
       ) : activeTab === 'files' ? (
         /* Files tab view */
-        <div className="flex-1 overflow-y-auto scrollbar-thin px-4 py-4 flex flex-col gap-2 min-h-0">
+        <div className="flex-1 overflow-y-auto scrollbar-thin px-4 py-4 flex flex-col gap-0 min-h-0">
           {attachedFiles.length === 0 ? (
             <div className="flex-1 flex items-center justify-center text-[#ccc] text-[13px]">
               생성된 파일이 없습니다
@@ -315,9 +316,8 @@ export default function ChannelPanel({
                 onClick={() => onOpenFile ? onOpenFile(file) : undefined}
                 className="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-black/5 text-left transition-colors cursor-pointer"
               >
-                <FileIcon />
                 <div className="flex flex-col min-w-0">
-                  <span className="text-[13px] text-[#292929] truncate">{file.name}</span>
+                  <span className="text-[13px] font-semibold text-[#292929] truncate">{file.name}</span>
                   <span className="text-[11px] text-[#999]">
                     {new Date(file.updatedAt).toLocaleDateString('ko-KR')}
                   </span>
@@ -401,8 +401,13 @@ export default function ChannelPanel({
           {selectedMembers.map((m) => (
             <div
               key={m.id}
-              className="flex h-[32px] items-center px-[5px] rounded-[30px]"
+              className="flex h-[32px] items-center px-[5px] rounded-[30px] cursor-pointer"
               style={{ background: 'rgba(51,51,51,0.05)' }}
+              title="멘션"
+              onClick={() => {
+                setInputText((prev) => prev + `@${m.name} `);
+                textareaRef.current?.focus();
+              }}
             >
               <div className="flex gap-[4px] items-center">
                 <span
@@ -415,7 +420,7 @@ export default function ChannelPanel({
                 <button
                   type="button"
                   title="멤버 제거"
-                  onClick={() => removeMember(m.id)}
+                  onClick={(e) => { e.stopPropagation(); removeMember(m.id); }}
                   className="w-[16px] h-[16px] flex items-center justify-center ml-1 cursor-pointer"
                 >
                   <Image src="/icon-close.svg" alt="remove" width={20} height={20} />
@@ -449,7 +454,7 @@ export default function ChannelPanel({
                       >
                         {m.initial}
                       </span>
-                      <span className="text-[13px] text-[#292929]">{m.name}</span>
+                      <span className="text-[11px] text-[#292929]">{m.name}</span>
                     </button>
                   ))}
               </div>
@@ -461,6 +466,7 @@ export default function ChannelPanel({
         <div className="flex flex-col h-[100px] p-[15px] rounded-[16px] relative" style={{ background: 'rgba(51,51,51,0.05)' }}>
           <div className="flex flex-1 gap-[10px] items-start">
             <textarea
+              ref={textareaRef}
               value={inputText}
               onChange={(e) => setInputText(e.target.value)}
               onKeyDown={handleKeyDown}

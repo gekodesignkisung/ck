@@ -113,8 +113,8 @@ export default function WorkspacesPage() {
               <button
                 key={ws.id}
                 onClick={() => router.push(`/ws/${ws.id}`)}
-                className="flex flex-col justify-between p-5 rounded-2xl text-left cursor-pointer transition-all hover:shadow-md hover:-translate-y-[1px]"
-                style={{ background: 'white', minHeight: 160 }}
+                className="flex flex-col justify-between p-5 rounded-2xl text-left cursor-pointer transition-all border-2 border-[#ccccdd] bg-white hover:border-[#507096] hover:bg-[#f0f4f8]"
+                style={{ minHeight: 160 }}
               >
                 <div className="flex flex-col gap-1">
                   <span className="text-[24px] font-semibold" style={{ color: '#333333' }}>{ws.name}</span>
@@ -147,27 +147,28 @@ export default function WorkspacesPage() {
         </div>
       </main>
 
-      {/* Create workspace — full screen */}
+      {/* Create workspace — modal popup */}
       {showCreate && (
-        <div className="fixed inset-0 bg-white z-50 overflow-y-auto">
+        <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4" onClick={closeCreate}>
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-[520px] max-h-[90vh] overflow-y-auto relative" onClick={(e) => e.stopPropagation()}>
           {/* Close button */}
           <button
             onClick={closeCreate}
-            className="fixed top-5 right-5 w-9 h-9 flex items-center justify-center rounded-full hover:bg-[#f0f0f0] transition-colors z-10"
+            className="absolute top-4 right-4 w-9 h-9 flex items-center justify-center rounded-full hover:bg-[#f0f0f0] transition-colors z-10"
           >
             <Image src="/icon-close.svg" alt="close" width={24} height={24} />
           </button>
 
-          <div className="max-w-[560px] mx-auto px-6 pt-[72px] pb-16">
+          <div className="px-8 pt-8 pb-8">
             {/* Step indicator */}
-            <div className="flex flex-col gap-2 mb-10">
-              <div className="flex items-center">
+            <div className="flex flex-col gap-2 mb-5">
+              <div className="flex items-center w-[160px]">
                 {[1, 2, 3].map((s) => (
                   <div key={s} className="flex items-center" style={{ flex: s < 3 ? '1' : 'none' }}>
                     <div
                       className="w-8 h-8 rounded-full flex items-center justify-center text-[13px] font-bold shrink-0 transition-all"
                       style={{
-                        background: s < step ? '#22c55e' : s === step ? '#1a1a1a' : '#e0e0e0',
+                        background: s < step ? '#507096' : s === step ? '#1a1a1a' : '#e0e0e0',
                         color: s <= step ? 'white' : '#aaa',
                       }}
                     >
@@ -176,22 +177,22 @@ export default function WorkspacesPage() {
                     {s < 3 && (
                       <div
                         className="flex-1 h-[2px] transition-all"
-                        style={{ background: s < step ? '#22c55e' : '#e0e0e0' }}
+                        style={{ background: s < step ? '#507096' : '#e0e0e0' }}
                       />
                     )}
                   </div>
                 ))}
               </div>
-              <span className="text-[13px] text-[#888]">{step} / 3 단계</span>
+              <span className="text-[13px] text-[#888]">{step} / 3</span>
             </div>
 
             {/* Step 1 — 워크스페이스 이름 */}
             {step === 1 && (
               <div className="flex flex-col gap-7">
                 <div className="flex flex-col gap-2">
-                  <h2 className="text-[28px] font-bold text-[#1a1a1a]">워크스페이스 이름 정하기</h2>
+                  <h2 className="text-[28px] font-bold text-[#1a1a1a]">워크스페이스 만들기</h2>
                   <p className="text-[14px] text-[#666] leading-relaxed">
-                    워크스페이스는 팀과 AI 에이전트가 함께 협업하는 공간입니다. 채널, DM, 파일을 통해 소통할 수 있어요.
+                    워크스페이스는 팀과 AI 에이전트가 함께 협업하는 공간입니다.<br /> 채널, DM, 파일을 통해 소통할 수 있어요.
                   </p>
                 </div>
                 <div className="flex flex-col gap-5">
@@ -236,9 +237,9 @@ export default function WorkspacesPage() {
             {step === 2 && (
               <div className="flex flex-col gap-7">
                 <div className="flex flex-col gap-2">
-                  <h2 className="text-[28px] font-bold text-[#1a1a1a]">나의 정체성</h2>
+                  <h2 className="text-[28px] font-bold text-[#1a1a1a]">나의 정체성 Node</h2>
                   <p className="text-[14px] text-[#666] leading-relaxed">
-                    Craken에서 모든 참여자(사람 또는 AI)는 노드입니다. 노드 이름은 나의 핸들로, 메시지·@멘션·DM에서 사용됩니다.
+                    Craken에서 모든 참여자(사람 또는 AI)는 노드입니다.<br /> 노드 이름은 나의 핸들로, 메시지·@멘션·DM에서 사용됩니다.
                   </p>
                 </div>
                 <div className="flex flex-col gap-1.5">
@@ -256,7 +257,7 @@ export default function WorkspacesPage() {
                 <div className="flex justify-between items-center">
                   <button
                     onClick={() => setStep(1)}
-                    className="px-5 py-3 text-[14px] text-[#555] hover:text-[#1a1a1a] transition-colors cursor-pointer"
+                    className="px-5 py-3 rounded-xl text-[14px] text-[#555] hover:text-[#1a1a1a] transition-colors cursor-pointer bg-[#eee] hover:bg-[#e0e0e0]"
                   >
                     이전
                   </button>
@@ -278,7 +279,7 @@ export default function WorkspacesPage() {
                 <div className="flex flex-col gap-2">
                   <h2 className="text-[28px] font-bold text-[#1a1a1a]">팀 접근 설정</h2>
                   <p className="text-[14px] text-[#666] leading-relaxed">
-                    지정한 이메일 도메인을 가진 사람은 초대 없이 자동으로 참여할 수 있습니다. 나중에 설정에서 언제든 변경할 수 있어요.
+                    지정한 이메일 도메인을 가진 사람은 초대 없이 자동으로 참여할 수 있습니다.<br /> 나중에 설정에서 언제든 변경할 수 있어요.
                   </p>
                 </div>
                 <div className="flex flex-col gap-1.5">
@@ -296,7 +297,7 @@ export default function WorkspacesPage() {
                 <div className="flex justify-between items-center">
                   <button
                     onClick={() => setStep(2)}
-                    className="px-5 py-3 text-[14px] text-[#555] hover:text-[#1a1a1a] transition-colors cursor-pointer"
+                    className="px-5 py-3 rounded-xl text-[14px] text-[#555] hover:text-[#1a1a1a] transition-colors cursor-pointer bg-[#eee] hover:bg-[#e0e0e0]"
                   >
                     이전
                   </button>
@@ -310,6 +311,7 @@ export default function WorkspacesPage() {
                 </div>
               </div>
             )}
+          </div>
           </div>
         </div>
       )}

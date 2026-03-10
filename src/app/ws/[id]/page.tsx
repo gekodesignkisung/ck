@@ -6,7 +6,7 @@ import { useParams, useRouter } from 'next/navigation';
 import Sidebar from '@/components/Sidebar';
 import ChannelPanel from '@/components/ChannelPanel';
 import FilePanel from '@/components/FilePanel';
-import type { Channel, Member, RecentFile, Panel } from '@/types';
+import type { Channel, Member, RecentFile, Panel, Message } from '@/types';
 import { WORKING_TASKS, AI_AGENTS, INITIAL_FILES } from '@/lib/constants';
 
 // ── Static seed data ─────────────────────────────────────────────────────────
@@ -21,11 +21,30 @@ const COLOR_PALETTE: Channel['color'][] = [
   '#f3e3ba', '#bcf3ba', '#baf3f3', '#f3baf3', '#f3bad3',
 ];
 
-// 채널별 초기 파일 (대화 중 업로드/생성된 파일 시드)
-const CHANNEL_SEED_FILES: Record<string, RecentFile[]> = {
-  'ch-general': [],
-  'ch-sample':  [],
-};
+// ── Persistence helpers ────────────────────────────────────────────────────────
+
+function serializePanel(p: Panel): object {
+  return {
+    ...p,
+    messages: p.messages?.map((m) => ({ ...m, createdAt: m.createdAt instanceof Date ? m.createdAt.toISOString() : m.createdAt })),
+    attachedFiles: p.attachedFiles?.map((f) => ({ ...f, updatedAt: f.updatedAt instanceof Date ? f.updatedAt.toISOString() : f.updatedAt })),
+  };
+}
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function deserializePanel(p: any): Panel {
+  return {
+    ...p,
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    messages: p.messages?.map((m: any) => ({ ...m, createdAt: new Date(m.createdAt) })),
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    attachedFiles: p.attachedFiles?.map((f: any) => ({ ...f, updatedAt: new Date(f.updatedAt) })),
+  };
+}
+
+function wsStorageKey(wsId: string) {
+  return `craken_ws_data_${wsId}`;
+}
 
 // ── Component ─────────────────────────────────────────────────────────────────
 
@@ -36,6 +55,8 @@ export default function WorkspacePage() {
   const panelScrollRef = useRef<HTMLDivElement>(null);
   // 닫힌 패널 상태 보존 (key: panelId)
   const panelStore = useRef<Record<string, Panel>>({});
+  // 초기 로드 완료 전에는 저장하지 않음
+  const isLoaded = useRef(false);
 
   const [workspaceName, setWorkspaceName] = useState('워크스페이스');
   const [currentUser, setCurrentUser] = useState<Member>({
@@ -56,7 +77,7 @@ export default function WorkspacePage() {
       type: 'channel',
       title: 'General',
       selectedMembers: [],
-      attachedFiles: CHANNEL_SEED_FILES['ch-general'] ?? [],
+      attachedFiles: [],
       messages: [],
     },
   ]);
@@ -108,27 +129,50 @@ export default function WorkspacePage() {
       isMe: true,
       status: 'awake',
     };
-
     setCurrentUser(me);
-    setMembers([me, ...AI_AGENTS]);
 
-    // URL ?ch= 파라미터로 특정 채널 바로 오픈
-    const params = new URLSearchParams(window.location.search);
-    const chParam = params.get('ch');
-    if (chParam && chParam !== 'ch-general') {
-      const ch = INITIAL_CHANNELS.find((c) => c.id === chParam);
-      if (ch) {
-        setOpenPanels([{
-          id: ch.id,
-          type: 'channel',
-          title: ch.name,
-          color: ch.color,
-          selectedMembers: [],
-          attachedFiles: CHANNEL_SEED_FILES[ch.id] ?? [],
-          messages: [],
-        }]);
+    // 워크스페이스별 저장 데이터 복원
+    const storedData = localStorage.getItem(wsStorageKey(id));
+    if (storedData) {
+      try {
+        const parsed = JSON.parse(storedData) as {
+          channels?: Channel[];
+          members?: Array<Record<string, unknown>>;
+          recentFiles?: Array<Record<string, unknown>>;
+          openPanels?: Array<Record<string, unknown>>;
+          closedPanels?: Record<string, Record<string, unknown>>;
+        };
+        if (parsed.channels) setChannels(parsed.channels);
+        if (parsed.members) {
+          // "me" 는 항상 최신 정보로 갱신
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          const others = (parsed.members as any[]).filter((m) => !m.isMe) as Member[];
+          setMembers([me, ...others]);
+        } else {
+          setMembers([me, ...AI_AGENTS]);
+        }
+        if (parsed.recentFiles) {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          setRecentFiles((parsed.recentFiles as any[]).map((f) => ({ ...f, updatedAt: new Date(f.updatedAt) })));
+        }
+        if (parsed.openPanels) {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          setOpenPanels((parsed.openPanels as any[]).map(deserializePanel));
+        }
+        if (parsed.closedPanels) {
+          panelStore.current = Object.fromEntries(
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            Object.entries(parsed.closedPanels).map(([k, v]) => [k, deserializePanel(v as any)])
+          );
+        }
+      } catch {
+        setMembers([me, ...AI_AGENTS]);
       }
+    } else {
+      setMembers([me, ...AI_AGENTS]);
     }
+
+    isLoaded.current = true;
   }, [id]);
 
   // Assign random workingTask (client-only to avoid SSR mismatch)
@@ -141,6 +185,21 @@ export default function WorkspacePage() {
       )
     );
   }, []);
+
+  // 상태 변경 시 localStorage에 저장
+  useEffect(() => {
+    if (!isLoaded.current) return;
+    const data = {
+      channels,
+      members,
+      recentFiles: recentFiles.map((f) => ({ ...f, updatedAt: f.updatedAt.toISOString() })),
+      openPanels: openPanels.map(serializePanel),
+      closedPanels: Object.fromEntries(
+        Object.entries(panelStore.current).map(([k, v]) => [k, serializePanel(v)])
+      ),
+    };
+    localStorage.setItem(wsStorageKey(id), JSON.stringify(data));
+  }, [channels, members, recentFiles, openPanels, id]);
 
   // ── URL copy ──────────────────────────────────────────────────────────────
 
@@ -196,7 +255,7 @@ export default function WorkspacePage() {
       title: ch.name,
       color: ch.color,
       selectedMembers: [],
-      attachedFiles: CHANNEL_SEED_FILES[ch.id] ?? [],
+      attachedFiles: [],
       messages: [],
     });
   };
@@ -226,6 +285,11 @@ export default function WorkspacePage() {
   const handleOpenFileBrowser = () => {
     if (openPanels.find((p) => p.id === '__file-browser__')) { closePanel('__file-browser__'); return; }
     openPanel({ id: '__file-browser__', type: 'file', title: '파일 탐색기' });
+  };
+
+  const handleOpenWikiHome = () => {
+    if (openPanels.find((p) => p.id === '__wiki-home__')) { closePanel('__wiki-home__'); return; }
+    openPanel({ id: '__wiki-home__', type: 'file', title: 'Wiki home' });
   };
 
   const handleDeleteChannel = (channelId: string) => {
@@ -263,7 +327,6 @@ export default function WorkspacePage() {
           workspaceName={workspaceName}
           channels={channels}
           members={members}
-          recentFiles={recentFiles}
           currentUser={currentUser}
           openPanels={openPanels}
           onGoHome={() => router.push('/workspaces')}
@@ -272,7 +335,7 @@ export default function WorkspacePage() {
           onOpenChannel={handleOpenChannel}
           onDeleteChannel={handleDeleteChannel}
           onOpenDM={handleOpenDM}
-          onOpenFile={handleOpenFile}
+          onOpenWikiHome={handleOpenWikiHome}
           onOpenFileBrowser={handleOpenFileBrowser}
         />
 
