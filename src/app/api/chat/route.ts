@@ -1,7 +1,11 @@
 import Groq from 'groq-sdk';
 import { NextRequest, NextResponse } from 'next/server';
 
-const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
+let groq: Groq | null = null;
+function getGroq() {
+  if (!groq) groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
+  return groq;
+}
 
 const FILE_CREATION_INSTRUCTION = `
 If the user asks you to create, write, draft, or generate a document or file, include it in your response using this exact format (replace filename and content):
@@ -56,7 +60,7 @@ export async function POST(req: NextRequest) {
       systemPrompt += `\nYou are currently working on: "${workingTask}". Occasionally mention it briefly.`;
     }
 
-    const completion = await groq.chat.completions.create({
+    const completion = await getGroq().chat.completions.create({
       model: 'llama-3.3-70b-versatile',
       messages: [
         { role: 'system', content: systemPrompt },
