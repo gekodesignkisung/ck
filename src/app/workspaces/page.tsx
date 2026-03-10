@@ -138,10 +138,10 @@ export default function WorkspacesPage() {
                 </div>
                 {/* 삭제 버튼 - 호버 시 표시 */}
                 <button
-                  className="absolute bottom-3 right-3 w-7 h-7 flex items-center justify-center rounded-lg opacity-0 group-hover:opacity-100 transition-opacity hover:bg-[#ffe0e0]"
+                  className="absolute bottom-3 right-3 w-8 h-8 flex items-center justify-center rounded-lg opacity-0 group-hover:opacity-100 transition-opacity hover:bg-[#ffe0e0]"
                   onClick={(e) => { e.stopPropagation(); setDeleteTarget(ws); }}
                 >
-                  <Image src="/icon-delete.svg" alt="삭제" width={16} height={16} />
+                  <Image src="/icon-delete.svg" alt="삭제" width={20} height={20} />
                 </button>
               </div>
             ))}
