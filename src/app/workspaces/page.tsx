@@ -161,25 +161,21 @@ export default function WorkspacesPage() {
 
       {/* Delete confirm modal */}
       {deleteTarget && (
-        <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4" onClick={() => setDeleteTarget(null)}>
-          <div className="bg-white rounded-2xl shadow-xl w-full max-w-[360px] p-7 flex flex-col gap-5" onClick={(e) => e.stopPropagation()}>
-            <div className="flex flex-col gap-1.5">
-              <h2 className="text-[18px] font-bold text-[#1a1a1a]">워크스페이스 삭제</h2>
-              <p className="text-[14px] text-[#666]">
-                <span className="font-semibold text-[#1a1a1a]">{deleteTarget.name}</span> 워크스페이스를 삭제할까요?<br />이 작업은 되돌릴 수 없습니다.
-              </p>
-            </div>
+        <div className="fixed inset-0 bg-black/30 flex items-center justify-center z-50" onClick={() => setDeleteTarget(null)}>
+          <div className="bg-white rounded-xl shadow-xl p-6 w-[320px] flex flex-col gap-4" onClick={(e) => e.stopPropagation()}>
+            <p className="text-[14px] text-[#292929] leading-relaxed">
+              <span className="font-semibold">{deleteTarget.name}</span> 워크스페이스를 삭제합니다.<br />삭제한 워크스페이스는 복구할 수 없습니다.
+            </p>
             <div className="flex gap-2 justify-end">
               <button
                 onClick={() => setDeleteTarget(null)}
-                className="px-5 py-2.5 rounded-xl text-[13px] text-[#555] bg-[#eee] hover:bg-[#e0e0e0] transition-colors cursor-pointer"
+                className="px-4 py-2 rounded-lg text-[14px] text-[#666] hover:bg-[#f3f3f7] transition-colors cursor-pointer"
               >
                 취소
               </button>
               <button
                 onClick={() => handleDeleteWorkspace(deleteTarget)}
-                className="px-5 py-2.5 rounded-xl text-[13px] font-semibold text-white transition-colors cursor-pointer"
-                style={{ background: '#d9534f' }}
+                className="px-4 py-2 rounded-lg text-[14px] text-white font-semibold bg-[#e05555] hover:bg-[#c94444] transition-colors cursor-pointer"
               >
                 삭제
               </button>
