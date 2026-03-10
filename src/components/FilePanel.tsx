@@ -21,7 +21,7 @@ export default function FilePanel({ panel, allFiles, onClose, onOpenFile }: File
       <div className="flex h-[50px] items-center px-[15px] shrink-0 bg-[#f3f3f7] gap-2">
         <div className="flex items-center gap-0 min-w-0 flex-1">
           {isBrowser && (
-            <Image src="/icon-folder.svg" alt="folder" width={30} height={30} />
+            <Image src="/icon-folder.svg" alt="folder" width={30} height={30} style={{ filter: 'brightness(0) invert(40%)' }} />
           )}
           <span className="text-[14px] font-semibold text-[#292929] truncate">
             {panel.title}

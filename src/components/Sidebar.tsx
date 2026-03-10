@@ -193,13 +193,13 @@ export default function Sidebar({
                   className="absolute right-0 mt-1 w-[120px] bg-white border border-[#ccc] rounded shadow-lg z-50"
                 >
                   <button
-                    className="w-full text-left px-3 py-2 hover:bg-[#f0f0f0]"
+                    className="w-full text-left px-3 py-2 text-[13px] hover:bg-[#f0f0f0]"
                     onClick={() => { setShowMemberMenu(false); onAddMember(); }}
                   >
                     에이전트 추가
                   </button>
                   <button
-                    className="w-full text-left px-3 py-2 hover:bg-[#f0f0f0]"
+                    className="w-full text-left px-3 py-2 text-[13px] hover:bg-[#f0f0f0]"
                     onClick={() => { setShowMemberMenu(false); setShowInvitePopup(true); }}
                   >
                     사람 초대
