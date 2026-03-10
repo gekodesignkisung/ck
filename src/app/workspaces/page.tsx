@@ -17,9 +17,11 @@ interface StoredUser {
   email: string;
 }
 
+const FIXED_USER: StoredUser = { name: 'User Name', email: 'Username@company.com' };
+
 export default function WorkspacesPage() {
   const router = useRouter();
-  const [user, setUser] = useState<StoredUser | null>(null);
+  const user = FIXED_USER;
   const [workspaces, setWorkspaces] = useState<StoredWorkspace[]>([]);
   const [showCreate, setShowCreate] = useState(false);
   const [step, setStep] = useState(1);
@@ -30,15 +32,11 @@ export default function WorkspacesPage() {
   const [allowedDomain, setAllowedDomain] = useState('');
 
   useEffect(() => {
-    const stored = localStorage.getItem('craken_user');
-    if (!stored) { router.push('/'); return; }
-    setUser(JSON.parse(stored));
     const storedWs = localStorage.getItem('craken_workspaces');
     if (storedWs) setWorkspaces(JSON.parse(storedWs));
-  }, [router]);
+  }, []);
 
   const handleLogout = () => {
-    localStorage.removeItem('craken_user');
     router.push('/');
   };
 
@@ -82,8 +80,6 @@ export default function WorkspacesPage() {
 
   const canNext1 = wsName.trim() && wsId.trim();
   const canNext2 = nodeName.trim();
-
-  if (!user) return null;
 
   return (
     <div className="flex flex-col min-h-screen" style={{ background: '#F2F8FF' }}>

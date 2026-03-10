@@ -82,7 +82,8 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({ content, generatedFile });
   } catch (err) {
-    console.error('[chat API]', err);
-    return NextResponse.json({ error: 'AI 응답 실패' }, { status: 500 });
+    const msg = err instanceof Error ? err.message : String(err);
+    console.error('[chat API]', msg);
+    return NextResponse.json({ error: 'AI 응답 실패', detail: msg }, { status: 500 });
   }
 }
