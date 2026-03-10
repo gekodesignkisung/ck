@@ -57,6 +57,8 @@ export default function WorkspacePage() {
   const panelStore = useRef<Record<string, Panel>>({});
   // 초기 로드 완료 전에는 저장하지 않음
   const isLoaded = useRef(false);
+  // 사용자 직접 변경 시에만 Blob 저장 (폴링 업데이트 시 저장 방지)
+  const locallyModified = useRef(false);
   // 서버 저장 디바운스 타이머
   const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -185,9 +187,10 @@ export default function WorkspacePage() {
     );
   }, []);
 
-  // 상태 변경 시 localStorage + 서버(KV)에 저장
+  // 사용자가 직접 변경한 경우에만 localStorage + 서버(Blob)에 저장
   useEffect(() => {
-    if (!isLoaded.current) return;
+    if (!isLoaded.current || !locallyModified.current) return;
+    locallyModified.current = false;
     const data = {
       workspaceName,
       channels,
@@ -252,6 +255,7 @@ export default function WorkspacePage() {
   // ── Panel helpers ─────────────────────────────────────────────────────────
 
   const openPanel = useCallback((panel: Panel) => {
+    locallyModified.current = true;
     setOpenPanels((prev) => {
       if (prev.find((p) => p.id === panel.id)) return prev;
       // 이전에 저장된 상태가 있으면 복원
@@ -261,6 +265,7 @@ export default function WorkspacePage() {
   }, []);
 
   const closePanel = useCallback((panelId: string) => {
+    locallyModified.current = true;
     setOpenPanels((prev) => {
       const target = prev.find((p) => p.id === panelId);
       if (target) panelStore.current[panelId] = target;
@@ -269,6 +274,7 @@ export default function WorkspacePage() {
   }, []);
 
   const updatePanel = useCallback((panelId: string, updates: Partial<Panel>) => {
+    locallyModified.current = true;
     setOpenPanels((prev) =>
       prev.map((p) => {
         if (p.id !== panelId) return p;
@@ -280,6 +286,7 @@ export default function WorkspacePage() {
   }, []);
 
   const handleAddFile = useCallback((file: RecentFile) => {
+    locallyModified.current = true;
     setRecentFiles((prev) => {
       if (prev.find((f) => f.id === file.id)) return prev;
       return [...prev, file];
@@ -334,6 +341,7 @@ export default function WorkspacePage() {
   };
 
   const handleDeleteChannel = (channelId: string) => {
+    locallyModified.current = true;
     setChannels((prev) => prev.filter((c) => c.id !== channelId));
     closePanel(channelId);
   };
@@ -341,6 +349,7 @@ export default function WorkspacePage() {
   const handleAddChannel = () => {
     const name = newChannelName.trim();
     if (!name) return;
+    locallyModified.current = true;
     const color = COLOR_PALETTE[channels.length % COLOR_PALETTE.length];
     setChannels((prev) => [...prev, { id: `ch-${Date.now()}`, name, color, fileCount: 0, memberCount: 0 }]);
     setNewChannelName('');
@@ -352,6 +361,7 @@ export default function WorkspacePage() {
   const handleAddMember = () => {
     const name = newMemberName.trim();
     if (!name) return;
+    locallyModified.current = true;
     const color = MEMBER_COLORS[members.length % MEMBER_COLORS.length];
     setMembers((prev) => [...prev, { id: `member-${Date.now()}`, name, color, initial: name[0].toUpperCase() }]);
     setNewMemberName('');
