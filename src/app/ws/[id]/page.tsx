@@ -210,7 +210,7 @@ export default function WorkspacePage() {
     }, 2000);
   }, [workspaceName, channels, members, recentFiles, openPanels, id]);
 
-  // 8초마다 Blob 폴링 → 다른 창에서 추가된 메시지 반영
+  // 8초마다 Blob 폴링 → 다른 창에서 추가된 메시지 반영 (ID 기반 병합)
   useEffect(() => {
     const timer = setInterval(async () => {
       if (!isLoaded.current) return;
@@ -227,11 +227,14 @@ export default function WorkspacePage() {
             if (!sp) return p;
             const pMsgs = p.messages ?? [];
             const sMsgs = sp.messages ?? [];
-            const needsUpdate =
-              sMsgs.length > pMsgs.length ||
-              (sMsgs.length > 0 && pMsgs.length > 0 &&
-                sMsgs[sMsgs.length - 1]?.id !== pMsgs[pMsgs.length - 1]?.id);
-            return needsUpdate ? sp : p;
+            // ID 기준 합집합 병합 → 어느 쪽도 메시지를 잃지 않음
+            const mergedMap = new Map<string, Message>();
+            for (const m of pMsgs) mergedMap.set(m.id, m);
+            for (const m of sMsgs) if (!mergedMap.has(m.id)) mergedMap.set(m.id, m);
+            const merged = Array.from(mergedMap.values()).sort(
+              (a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
+            );
+            return merged.length > pMsgs.length ? { ...p, messages: merged } : p;
           })
         );
       } catch { /* 무시 */ }

@@ -3,7 +3,7 @@
 import { useState, useCallback, useEffect, useRef } from 'react';
 import { useParams } from 'next/navigation';
 import ChannelPanel from '@/components/ChannelPanel';
-import type { Member, Panel, RecentFile } from '@/types';
+import type { Member, Message, Panel, RecentFile } from '@/types';
 import { WORKING_TASKS, AI_AGENTS } from '@/lib/constants';
 
 const CHANNEL_INFO: Record<string, { name: string; color: string; defaultMembers: Member[] }> = {
@@ -171,12 +171,14 @@ export default function StandaloneChannelPage() {
             const sp = deserializePanel(found);
             const pMsgs = prev.messages ?? [];
             const sMsgs = sp.messages ?? [];
-            const needsUpdate =
-              sMsgs.length > pMsgs.length ||
-              (sMsgs.length > 0 && pMsgs.length > 0 &&
-                sMsgs[sMsgs.length - 1]?.id !== pMsgs[pMsgs.length - 1]?.id);
-            return needsUpdate ? sp : prev;
-          });
+            // ID 기준 합집합 병합 → 어느 쪽도 메시지를 잃지 않음
+            const mergedMap = new Map<string, Message>();
+            for (const m of pMsgs) mergedMap.set(m.id, m);
+            for (const m of sMsgs) if (!mergedMap.has(m.id)) mergedMap.set(m.id, m);
+            const merged = Array.from(mergedMap.values()).sort(
+              (a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
+            );
+            return merged.length > pMsgs.length ? { ...prev, messages: merged } : prev;
         }
       } catch { /* 무시 */ }
     }, 8000);
