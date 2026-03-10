@@ -57,6 +57,8 @@ export default function WorkspacePage() {
   const panelStore = useRef<Record<string, Panel>>({});
   // 초기 로드 완료 전에는 저장하지 않음
   const isLoaded = useRef(false);
+  // 서버 저장 디바운스 타이머
+  const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const [workspaceName, setWorkspaceName] = useState('워크스페이스');
   const [currentUser, setCurrentUser] = useState<Member>({
@@ -99,16 +101,8 @@ export default function WorkspacePage() {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [openPanels.length]);
 
-  // Load workspace data from localStorage
+  // Load workspace data (server-first, localStorage fallback)
   useEffect(() => {
-    const storedWs = localStorage.getItem('craken_workspaces');
-
-    if (storedWs) {
-      const wsList = JSON.parse(storedWs) as Array<{ id: string; name: string }>;
-      const ws = wsList.find((w) => w.id === id);
-      if (ws) setWorkspaceName(ws.name);
-    }
-
     const me: Member = {
       id: 'me',
       name: 'User Name',
@@ -120,48 +114,64 @@ export default function WorkspacePage() {
     };
     setCurrentUser(me);
 
-    // 워크스페이스별 저장 데이터 복원
-    const storedData = localStorage.getItem(wsStorageKey(id));
-    if (storedData) {
-      try {
-        const parsed = JSON.parse(storedData) as {
-          channels?: Channel[];
-          members?: Array<Record<string, unknown>>;
-          recentFiles?: Array<Record<string, unknown>>;
-          openPanels?: Array<Record<string, unknown>>;
-          closedPanels?: Record<string, Record<string, unknown>>;
-        };
-        if (parsed.channels) setChannels(parsed.channels);
-        if (parsed.members) {
-          // "me" 는 항상 최신 정보로 갱신
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          const others = (parsed.members as any[]).filter((m) => !m.isMe) as Member[];
-          setMembers([me, ...others]);
-        } else {
-          setMembers([me, ...AI_AGENTS]);
-        }
-        if (parsed.recentFiles) {
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          setRecentFiles((parsed.recentFiles as any[]).map((f) => ({ ...f, updatedAt: new Date(f.updatedAt) })));
-        }
-        if (parsed.openPanels) {
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          setOpenPanels((parsed.openPanels as any[]).map(deserializePanel));
-        }
-        if (parsed.closedPanels) {
-          panelStore.current = Object.fromEntries(
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            Object.entries(parsed.closedPanels).map(([k, v]) => [k, deserializePanel(v as any)])
-          );
-        }
-      } catch {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    function applyData(parsed: any, me: Member) {
+      if (parsed.workspaceName) setWorkspaceName(parsed.workspaceName);
+      if (parsed.channels) setChannels(parsed.channels);
+      if (parsed.members) {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const others = (parsed.members as any[]).filter((m: any) => !m.isMe) as Member[];
+        setMembers([me, ...others]);
+      } else {
         setMembers([me, ...AI_AGENTS]);
       }
-    } else {
-      setMembers([me, ...AI_AGENTS]);
+      if (parsed.recentFiles) {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        setRecentFiles((parsed.recentFiles as any[]).map((f: any) => ({ ...f, updatedAt: new Date(f.updatedAt) })));
+      }
+      if (parsed.openPanels) {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        setOpenPanels((parsed.openPanels as any[]).map(deserializePanel));
+      }
+      if (parsed.closedPanels) {
+        panelStore.current = Object.fromEntries(
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          Object.entries(parsed.closedPanels).map(([k, v]) => [k, deserializePanel(v as any)])
+        );
+      }
     }
 
-    isLoaded.current = true;
+    async function loadData() {
+      // 1) 서버(KV)에서 먼저 로드 시도
+      try {
+        const res = await fetch(`/api/ws-data?id=${id}`);
+        if (res.ok) {
+          const serverData = await res.json();
+          if (serverData) {
+            applyData(serverData, me);
+            isLoaded.current = true;
+            return;
+          }
+        }
+      } catch { /* KV 미설정 시 무시 */ }
+
+      // 2) localStorage 폴백
+      const storedWs = localStorage.getItem('craken_workspaces');
+      if (storedWs) {
+        const wsList = JSON.parse(storedWs) as Array<{ id: string; name: string }>;
+        const ws = wsList.find((w) => w.id === id);
+        if (ws) setWorkspaceName(ws.name);
+      }
+      const storedData = localStorage.getItem(wsStorageKey(id));
+      if (storedData) {
+        try { applyData(JSON.parse(storedData), me); } catch { setMembers([me, ...AI_AGENTS]); }
+      } else {
+        setMembers([me, ...AI_AGENTS]);
+      }
+      isLoaded.current = true;
+    }
+
+    loadData();
   }, [id]);
 
   // Assign random workingTask (client-only to avoid SSR mismatch)
@@ -175,10 +185,11 @@ export default function WorkspacePage() {
     );
   }, []);
 
-  // 상태 변경 시 localStorage에 저장
+  // 상태 변경 시 localStorage + 서버(KV)에 저장
   useEffect(() => {
     if (!isLoaded.current) return;
     const data = {
+      workspaceName,
       channels,
       members,
       recentFiles: recentFiles.map((f) => ({ ...f, updatedAt: f.updatedAt.toISOString() })),
@@ -188,7 +199,16 @@ export default function WorkspacePage() {
       ),
     };
     localStorage.setItem(wsStorageKey(id), JSON.stringify(data));
-  }, [channels, members, recentFiles, openPanels, id]);
+    // 서버에 디바운스 저장 (2초)
+    if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
+    saveTimerRef.current = setTimeout(() => {
+      fetch('/api/ws-data', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id, data }),
+      }).catch(() => {});
+    }, 2000);
+  }, [workspaceName, channels, members, recentFiles, openPanels, id]);
 
   // ── URL copy ──────────────────────────────────────────────────────────────
 
