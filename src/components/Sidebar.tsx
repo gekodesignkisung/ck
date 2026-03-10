@@ -106,7 +106,7 @@ export default function Sidebar({
             <div className="flex gap-2 justify-end">
               <button
                 onClick={() => { setShowInvitePopup(false); setInviteEmail(''); }}
-                className="px-4 py-2 rounded-lg text-[14px] text-[#666] hover:bg-[#f3f3f7] transition-colors cursor-pointer"
+                className="px-4 py-2 rounded-lg text-[14px] text-[#555] bg-[#eee] hover:bg-[#e0e0e0] transition-colors cursor-pointer"
               >
                 취소
               </button>
@@ -117,7 +117,7 @@ export default function Sidebar({
                   setInviteEmail('');
                 }}
                 className="px-4 py-2 rounded-lg text-[14px] text-white font-semibold transition-colors cursor-pointer"
-                style={{ background: '#507096' }}
+                style={{ background: '#1a1a1a' }}
               >
                 초대하기
               </button>
@@ -307,7 +307,7 @@ export default function Sidebar({
               <button
                 type="button"
                 onClick={() => setConfirmDeleteId(null)}
-                className="px-4 py-2 rounded-lg text-[14px] text-[#666] hover:bg-[#f3f3f7] transition-colors cursor-pointer"
+                className="px-4 py-2 rounded-lg text-[14px] text-[#555] bg-[#eee] hover:bg-[#e0e0e0] transition-colors cursor-pointer"
               >
                 취소
               </button>

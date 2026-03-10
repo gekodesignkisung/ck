@@ -490,14 +490,14 @@ function Modal({
         <div className="flex gap-2 justify-end">
           <button
             onClick={onClose}
-            className={`px-4 py-2 rounded-lg ${small ? 'text-[13px]' : 'text-[14px]'} text-[#666] hover:bg-[#f3f3f7] transition-colors cursor-pointer`}
+            className={`px-4 py-2 rounded-lg ${small ? 'text-[13px]' : 'text-[14px]'} text-[#555] bg-[#eee] hover:bg-[#e0e0e0] transition-colors cursor-pointer`}
           >
             취소
           </button>
           <button
             onClick={onConfirm}
             className={`px-4 py-2 rounded-lg ${small ? 'text-[13px]' : 'text-[14px]'} text-white font-semibold transition-colors cursor-pointer`}
-            style={{ background: '#507096' }}
+            style={{ background: '#1a1a1a' }}
           >
             추가
           </button>
