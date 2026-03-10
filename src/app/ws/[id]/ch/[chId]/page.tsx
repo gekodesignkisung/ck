@@ -1,98 +1,113 @@
 'use client';
 
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import { useParams } from 'next/navigation';
 import ChannelPanel from '@/components/ChannelPanel';
 import type { Member, Panel, RecentFile } from '@/types';
-import { WORKING_TASKS, AI_AGENTS, INITIAL_FILES } from '@/lib/constants';
+import { WORKING_TASKS, AI_AGENTS } from '@/lib/constants';
 
-// 채널 메타데이터 (id → 이름, 색상, 초기 파일/멤버)
-const CHANNEL_INFO: Record<string, {
-  name: string;
-  color: string;
-  fileSeeds: RecentFile[];
-  defaultMembers: Member[];
-}> = {
-  'ch-general': {
-    name: 'General',
-    color: '#f3e3ba',
-    fileSeeds: [],
-    defaultMembers: [],
-  },
-  'ch-sample': {
-    name: 'Sample',
-    color: '#bcf3ba',
-    fileSeeds: [],
-    defaultMembers: [AI_AGENTS[0], AI_AGENTS[1], AI_AGENTS[2]],
-  },
-  'ch-test': {
-    name: 'Test project',
-    color: '#baf3f3',
-    fileSeeds: [],
-    defaultMembers: [AI_AGENTS[0]],
-  },
+const CHANNEL_INFO: Record<string, { name: string; color: string; defaultMembers: Member[] }> = {
+  'ch-general': { name: 'General', color: '#f3e3ba', defaultMembers: [] },
+  'ch-sample':  { name: 'Sample',  color: '#bcf3ba', defaultMembers: [AI_AGENTS[0], AI_AGENTS[1], AI_AGENTS[2]] },
+  'ch-test':    { name: 'Test project', color: '#baf3f3', defaultMembers: [AI_AGENTS[0]] },
 };
 
-// ── Component ─────────────────────────────────────────────────────────────────
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function deserializePanel(p: any): Panel {
+  return {
+    ...p,
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    messages: p.messages?.map((m: any) => ({ ...m, createdAt: new Date(m.createdAt) })),
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    attachedFiles: p.attachedFiles?.map((f: any) => ({ ...f, updatedAt: new Date(f.updatedAt) })),
+  };
+}
+
+function serializePanel(p: Panel): object {
+  return {
+    ...p,
+    messages: p.messages?.map((m) => ({ ...m, createdAt: m.createdAt instanceof Date ? m.createdAt.toISOString() : m.createdAt })),
+    attachedFiles: p.attachedFiles?.map((f) => ({ ...f, updatedAt: f.updatedAt instanceof Date ? f.updatedAt.toISOString() : f.updatedAt })),
+  };
+}
 
 export default function StandaloneChannelPage() {
   const params = useParams();
   const wsId = params.id as string;
   const chId = params.chId as string;
-
   const chInfo = CHANNEL_INFO[chId];
 
-  const [currentUser, setCurrentUser] = useState<Member>({
+  const isLoaded = useRef(false);
+  const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // 전체 워크스페이스 데이터 캐시 (채널 저장 시 병합용)
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const wsDataRef = useRef<any>(null);
+
+  const [currentUser] = useState<Member>({
     id: 'me',
-    name: 'Me',
-    email: '',
+    name: 'User Name',
+    email: 'Username@company.com',
     color: '#80d96f',
-    initial: 'M',
+    initial: 'U',
     isMe: true,
     status: 'awake',
   });
-  const [members, setMembers] = useState<Member[]>([...AI_AGENTS]);
+  const [members, setMembers] = useState<Member[]>([currentUser, ...AI_AGENTS]);
   const [panel, setPanel] = useState<Panel>({
     id: chId,
     type: 'channel',
     title: chInfo?.name ?? chId,
     color: chInfo?.color,
     selectedMembers: chInfo?.defaultMembers ?? [],
-    attachedFiles: chInfo?.fileSeeds ?? [],
+    attachedFiles: [],
     messages: [],
   });
 
-  // 워크스페이스 / 유저 데이터 로드
+  // 로드: Blob → localStorage 순으로 채널 패널 데이터 복원
   useEffect(() => {
-    const storedUser = localStorage.getItem('craken_user');
-    const storedWs = localStorage.getItem('craken_workspaces');
-    let myName = 'Me';
-    let myEmail = '';
+    async function loadData() {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      let wsData: any = null;
 
-    if (storedUser) {
-      const u = JSON.parse(storedUser) as { name: string; email: string };
-      myEmail = u.email ?? '';
+      // 1) Blob에서 로드
+      try {
+        const res = await fetch(`/api/ws-data?id=${wsId}`);
+        if (res.ok) wsData = await res.json();
+      } catch { /* 무시 */ }
+
+      // 2) localStorage 폴백
+      if (!wsData) {
+        const stored = localStorage.getItem(`craken_ws_data_${wsId}`);
+        if (stored) {
+          try { wsData = JSON.parse(stored); } catch { /* 무시 */ }
+        }
+      }
+
+      if (wsData) {
+        wsDataRef.current = wsData;
+        // openPanels 또는 closedPanels에서 채널 패널 찾기
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const allPanels: any[] = [
+          ...(wsData.openPanels ?? []),
+          ...Object.values(wsData.closedPanels ?? {}),
+        ];
+        const found = allPanels.find((p) => p.id === chId);
+        if (found) {
+          setPanel(deserializePanel(found));
+        }
+        // 멤버 복원
+        if (wsData.members) {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          const others = (wsData.members as any[]).filter((m: any) => !m.isMe) as Member[];
+          setMembers([currentUser, ...others]);
+        }
+      }
+
+      isLoaded.current = true;
     }
-
-    if (storedWs) {
-      const wsList = JSON.parse(storedWs) as Array<{ id: string; myNodeName: string }>;
-      const ws = wsList.find((w) => w.id === wsId);
-      if (ws) myName = ws.myNodeName;
-    }
-
-    const me: Member = {
-      id: 'me',
-      name: `${myName}(Me)`,
-      email: myEmail,
-      color: '#80d96f',
-      initial: myName[0]?.toUpperCase() ?? 'M',
-      isMe: true,
-      status: 'awake',
-    };
-
-    setCurrentUser(me);
-    setMembers([me, ...AI_AGENTS]);
-  }, [wsId]);
+    loadData();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [wsId, chId]);
 
   // workingTask 랜덤 배정
   useEffect(() => {
@@ -104,6 +119,35 @@ export default function StandaloneChannelPage() {
       )
     );
   }, []);
+
+  // 패널 변경 시 워크스페이스 전체 데이터에 병합 저장
+  useEffect(() => {
+    if (!isLoaded.current) return;
+
+    const wsData = wsDataRef.current ?? {};
+    // openPanels에서 이 채널 업데이트, 없으면 추가
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const openPanels: any[] = wsData.openPanels ?? [];
+    const idx = openPanels.findIndex((p) => p.id === chId);
+    const serialized = serializePanel(panel);
+    if (idx >= 0) openPanels[idx] = serialized;
+    else openPanels.push(serialized);
+
+    const newWsData = { ...wsData, openPanels, members };
+    wsDataRef.current = newWsData;
+
+    localStorage.setItem(`craken_ws_data_${wsId}`, JSON.stringify(newWsData));
+
+    if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
+    saveTimerRef.current = setTimeout(() => {
+      fetch('/api/ws-data', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: wsId, data: newWsData }),
+      }).catch(() => {});
+    }, 2000);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [panel]);
 
   const updatePanel = useCallback((_id: string, updates: Partial<Panel>) => {
     setPanel((prev) => ({ ...prev, ...updates }));
