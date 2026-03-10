@@ -62,7 +62,7 @@ export default function WorkspacePage() {
   // 서버 저장 디바운스 타이머
   const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const [workspaceName, setWorkspaceName] = useState('워크스페이스');
+  const [workspaceName, setWorkspaceName] = useState('');
   const [currentUser, setCurrentUser] = useState<Member>({
     id: 'me',
     name: 'Me',
@@ -75,16 +75,7 @@ export default function WorkspacePage() {
   const [channels, setChannels] = useState<Channel[]>(INITIAL_CHANNELS);
   const [members, setMembers] = useState<Member[]>([...AI_AGENTS]);
   const [recentFiles, setRecentFiles] = useState<RecentFile[]>(INITIAL_FILES);
-  const [openPanels, setOpenPanels] = useState<Panel[]>([
-    {
-      id: 'ch-general',
-      type: 'channel',
-      title: 'General',
-      selectedMembers: [],
-      attachedFiles: [],
-      messages: [],
-    },
-  ]);
+  const [openPanels, setOpenPanels] = useState<Panel[]>([]);
   const [showAddChannel, setShowAddChannel] = useState(false);
   const [showAddMember, setShowAddMember] = useState(false);
   const [newChannelName, setNewChannelName] = useState('');
@@ -131,9 +122,11 @@ export default function WorkspacePage() {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         setRecentFiles((parsed.recentFiles as any[]).map((f: any) => ({ ...f, updatedAt: new Date(f.updatedAt) })));
       }
-      if (parsed.openPanels) {
+      if (parsed.openPanels && parsed.openPanels.length > 0) {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         setOpenPanels((parsed.openPanels as any[]).map(deserializePanel));
+      } else {
+        setOpenPanels([{ id: 'ch-general', type: 'channel', title: 'General', selectedMembers: [], attachedFiles: [], messages: [] }]);
       }
       if (parsed.closedPanels) {
         panelStore.current = Object.fromEntries(
@@ -169,6 +162,7 @@ export default function WorkspacePage() {
         try { applyData(JSON.parse(storedData), me); } catch { setMembers([me, ...AI_AGENTS]); }
       } else {
         setMembers([me, ...AI_AGENTS]);
+        setOpenPanels([{ id: 'ch-general', type: 'channel', title: 'General', selectedMembers: [], attachedFiles: [], messages: [] }]);
       }
       isLoaded.current = true;
     }
