@@ -42,6 +42,8 @@ export default function StandaloneChannelPage() {
   // 전체 워크스페이스 데이터 캐시 (채널 저장 시 병합용)
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const wsDataRef = useRef<any>(null);
+  // 사용자가 직접 메시지를 보낼 때만 저장 (폴링 업데이트 시 저장 방지)
+  const locallyModified = useRef(false);
 
   const [currentUser] = useState<Member>({
     id: 'me',
@@ -120,14 +122,14 @@ export default function StandaloneChannelPage() {
     );
   }, []);
 
-  // 패널 변경 시 워크스페이스 전체 데이터에 병합 저장
+  // 사용자가 직접 메시지를 보낼 때만 Blob 저장 (폴링 업데이트 시 저장 안 함)
   useEffect(() => {
-    if (!isLoaded.current) return;
+    if (!isLoaded.current || !locallyModified.current) return;
+    locallyModified.current = false;
 
     const wsData = wsDataRef.current ?? {};
-    // openPanels에서 이 채널 업데이트, 없으면 추가
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const openPanels: any[] = wsData.openPanels ?? [];
+    const openPanels: any[] = [...(wsData.openPanels ?? [])];
     const idx = openPanels.findIndex((p) => p.id === chId);
     const serialized = serializePanel(panel);
     if (idx >= 0) openPanels[idx] = serialized;
@@ -163,10 +165,17 @@ export default function StandaloneChannelPage() {
         const allPanels: any[] = [...(wsData.openPanels ?? []), ...Object.values(wsData.closedPanels ?? {})];
         const found = allPanels.find((p) => p.id === chId);
         if (found) {
+          // wsDataRef를 최신 서버 데이터로 갱신
+          wsDataRef.current = wsData;
           setPanel((prev) => {
             const sp = deserializePanel(found);
-            if ((sp.messages?.length ?? 0) > (prev.messages?.length ?? 0)) return sp;
-            return prev;
+            const pMsgs = prev.messages ?? [];
+            const sMsgs = sp.messages ?? [];
+            const needsUpdate =
+              sMsgs.length > pMsgs.length ||
+              (sMsgs.length > 0 && pMsgs.length > 0 &&
+                sMsgs[sMsgs.length - 1]?.id !== pMsgs[pMsgs.length - 1]?.id);
+            return needsUpdate ? sp : prev;
           });
         }
       } catch { /* 무시 */ }
@@ -176,6 +185,7 @@ export default function StandaloneChannelPage() {
   }, [wsId, chId]);
 
   const updatePanel = useCallback((_id: string, updates: Partial<Panel>) => {
+    locallyModified.current = true;
     setPanel((prev) => ({ ...prev, ...updates }));
   }, []);
 

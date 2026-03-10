@@ -224,8 +224,14 @@ export default function WorkspacePage() {
         setOpenPanels((prev) =>
           prev.map((p) => {
             const sp = serverPanels.find((s) => s.id === p.id);
-            if (sp && (sp.messages?.length ?? 0) > (p.messages?.length ?? 0)) return sp;
-            return p;
+            if (!sp) return p;
+            const pMsgs = p.messages ?? [];
+            const sMsgs = sp.messages ?? [];
+            const needsUpdate =
+              sMsgs.length > pMsgs.length ||
+              (sMsgs.length > 0 && pMsgs.length > 0 &&
+                sMsgs[sMsgs.length - 1]?.id !== pMsgs[pMsgs.length - 1]?.id);
+            return needsUpdate ? sp : p;
           })
         );
       } catch { /* 무시 */ }
