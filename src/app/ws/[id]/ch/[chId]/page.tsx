@@ -149,6 +149,32 @@ export default function StandaloneChannelPage() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [panel]);
 
+  // 8초마다 Blob 폴링 → 다른 창에서 추가된 메시지 반영
+  useEffect(() => {
+    const timer = setInterval(async () => {
+      if (!isLoaded.current) return;
+      try {
+        const res = await fetch(`/api/ws-data?id=${wsId}`);
+        if (!res.ok) return;
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const wsData: any = await res.json();
+        if (!wsData) return;
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const allPanels: any[] = [...(wsData.openPanels ?? []), ...Object.values(wsData.closedPanels ?? {})];
+        const found = allPanels.find((p) => p.id === chId);
+        if (found) {
+          setPanel((prev) => {
+            const sp = deserializePanel(found);
+            if ((sp.messages?.length ?? 0) > (prev.messages?.length ?? 0)) return sp;
+            return prev;
+          });
+        }
+      } catch { /* 무시 */ }
+    }, 8000);
+    return () => clearInterval(timer);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [wsId, chId]);
+
   const updatePanel = useCallback((_id: string, updates: Partial<Panel>) => {
     setPanel((prev) => ({ ...prev, ...updates }));
   }, []);

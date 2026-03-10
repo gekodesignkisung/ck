@@ -210,6 +210,29 @@ export default function WorkspacePage() {
     }, 2000);
   }, [workspaceName, channels, members, recentFiles, openPanels, id]);
 
+  // 8초마다 Blob 폴링 → 다른 창에서 추가된 메시지 반영
+  useEffect(() => {
+    const timer = setInterval(async () => {
+      if (!isLoaded.current) return;
+      try {
+        const res = await fetch(`/api/ws-data?id=${id}`);
+        if (!res.ok) return;
+        const serverData = await res.json();
+        if (!serverData?.openPanels) return;
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const serverPanels: Panel[] = (serverData.openPanels as any[]).map(deserializePanel);
+        setOpenPanels((prev) =>
+          prev.map((p) => {
+            const sp = serverPanels.find((s) => s.id === p.id);
+            if (sp && (sp.messages?.length ?? 0) > (p.messages?.length ?? 0)) return sp;
+            return p;
+          })
+        );
+      } catch { /* 무시 */ }
+    }, 8000);
+    return () => clearInterval(timer);
+  }, [id]);
+
   // ── URL copy ──────────────────────────────────────────────────────────────
 
   const handleCopyChannelUrl = useCallback((panelId: string) => {
