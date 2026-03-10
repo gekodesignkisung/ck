@@ -3,7 +3,7 @@ import { NextRequest, NextResponse } from 'next/server';
 
 let groq: Groq | null = null;
 function getGroq() {
-  if (!groq) groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
+  if (!groq) groq = new Groq({ apiKey: process.env.GROQ_API_KEY?.trim() });
   return groq;
 }
 
