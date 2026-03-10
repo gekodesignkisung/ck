@@ -18,7 +18,6 @@ export default function RootLayout({
           rel="stylesheet"
           href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css"
         />
-        <link rel="icon" type="image/svg+xml" href="/icon-craken-3.svg" />
         <link rel="icon" href="/favicon.ico" />
       </head>
       <body className="antialiased">
