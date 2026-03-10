@@ -23,6 +23,7 @@ export default function WorkspacesPage() {
   const router = useRouter();
   const user = FIXED_USER;
   const [workspaces, setWorkspaces] = useState<StoredWorkspace[]>([]);
+  const [deleteTarget, setDeleteTarget] = useState<StoredWorkspace | null>(null);
   const [showCreate, setShowCreate] = useState(false);
   const [step, setStep] = useState(1);
   const [wsName, setWsName] = useState('');
@@ -35,6 +36,13 @@ export default function WorkspacesPage() {
     const storedWs = localStorage.getItem('craken_workspaces');
     if (storedWs) setWorkspaces(JSON.parse(storedWs));
   }, []);
+
+  const handleDeleteWorkspace = (ws: StoredWorkspace) => {
+    const updated = workspaces.filter((w) => w.id !== ws.id);
+    setWorkspaces(updated);
+    localStorage.setItem('craken_workspaces', JSON.stringify(updated));
+    setDeleteTarget(null);
+  };
 
   const handleLogout = () => {
     localStorage.removeItem('craken_user');
@@ -107,11 +115,11 @@ export default function WorkspacesPage() {
           <h1 className="text-[26px] font-bold text-[#1a1a1a]">{user.name}님, 환영합니다</h1>
           <div className="grid grid-cols-[repeat(auto-fill,minmax(220px,1fr))] gap-4">
             {workspaces.map((ws) => (
-              <button
+              <div
                 key={ws.id}
-                onClick={() => router.push(`/ws/${ws.id}`)}
-                className="flex flex-col justify-between p-5 rounded-2xl text-left cursor-pointer transition-all border-2 border-[#ccccdd] bg-white hover:border-[#507096] hover:bg-[#f0f4f8]"
+                className="group relative flex flex-col justify-between p-5 rounded-2xl text-left cursor-pointer transition-all border-2 border-[#ccccdd] bg-white hover:border-[#507096] hover:bg-[#f0f4f8]"
                 style={{ minHeight: 160 }}
+                onClick={() => router.push(`/ws/${ws.id}`)}
               >
                 <div className="flex flex-col gap-1">
                   <span className="text-[24px] font-semibold" style={{ color: '#333333' }}>{ws.name}</span>
@@ -128,7 +136,14 @@ export default function WorkspacesPage() {
                     <span className="w-[7px] h-[7px] rounded-full bg-[#4caf50] shrink-0" />
                   </div>
                 </div>
-              </button>
+                {/* 삭제 버튼 - 호버 시 표시 */}
+                <button
+                  className="absolute bottom-3 right-3 w-7 h-7 flex items-center justify-center rounded-lg opacity-0 group-hover:opacity-100 transition-opacity hover:bg-[#ffe0e0]"
+                  onClick={(e) => { e.stopPropagation(); setDeleteTarget(ws); }}
+                >
+                  <Image src="/icon-delete.svg" alt="삭제" width={16} height={16} />
+                </button>
+              </div>
             ))}
 
             {/* New workspace card */}
@@ -143,6 +158,35 @@ export default function WorkspacesPage() {
           </div>
         </div>
       </main>
+
+      {/* Delete confirm modal */}
+      {deleteTarget && (
+        <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4" onClick={() => setDeleteTarget(null)}>
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-[360px] p-7 flex flex-col gap-5" onClick={(e) => e.stopPropagation()}>
+            <div className="flex flex-col gap-1.5">
+              <h2 className="text-[18px] font-bold text-[#1a1a1a]">워크스페이스 삭제</h2>
+              <p className="text-[14px] text-[#666]">
+                <span className="font-semibold text-[#1a1a1a]">{deleteTarget.name}</span> 워크스페이스를 삭제할까요?<br />이 작업은 되돌릴 수 없습니다.
+              </p>
+            </div>
+            <div className="flex gap-2 justify-end">
+              <button
+                onClick={() => setDeleteTarget(null)}
+                className="px-5 py-2.5 rounded-xl text-[13px] text-[#555] bg-[#eee] hover:bg-[#e0e0e0] transition-colors cursor-pointer"
+              >
+                취소
+              </button>
+              <button
+                onClick={() => handleDeleteWorkspace(deleteTarget)}
+                className="px-5 py-2.5 rounded-xl text-[13px] font-semibold text-white transition-colors cursor-pointer"
+                style={{ background: '#d9534f' }}
+              >
+                삭제
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Create workspace — modal popup */}
       {showCreate && (
