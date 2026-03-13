@@ -6,6 +6,7 @@ import { useParams, useRouter } from 'next/navigation';
 import Sidebar from '@/components/Sidebar';
 import ChannelPanel from '@/components/ChannelPanel';
 import FilePanel from '@/components/FilePanel';
+import SettingsPanel from '@/components/SettingsPanel';
 import type { Channel, Member, RecentFile, Panel } from '@/types';
 import { WORKING_TASKS, AI_AGENTS, INITIAL_FILES } from '@/lib/constants';
 
@@ -302,6 +303,15 @@ export default function WorkspacePage() {
     openPanel({ id: '__wiki-home__', type: 'file', title: 'Wiki home' });
   };
 
+  const handleOpenSettings = () => {
+    if (openPanels.find((p) => p.id === '__settings__')) { closePanel('__settings__'); return; }
+    locallyModified.current = true;
+    setOpenPanels((prev) => {
+      const newPanel: Panel = { id: '__settings__', type: 'settings', title: '환경 설정' };
+      return [newPanel, ...prev];
+    });
+  };
+
   const handleDeleteChannel = (channelId: string) => {
     locallyModified.current = true;
     setChannels((prev) => prev.filter((c) => c.id !== channelId));
@@ -350,6 +360,7 @@ export default function WorkspacePage() {
           onOpenDM={handleOpenDM}
           onOpenWikiHome={handleOpenWikiHome}
           onOpenFileBrowser={handleOpenFileBrowser}
+          onOpenSettings={handleOpenSettings}
         />
 
         <main className="flex flex-1 overflow-hidden min-w-0">
@@ -362,17 +373,30 @@ export default function WorkspacePage() {
             </div>
           ) : (
             <div ref={panelScrollRef} className="flex flex-1 overflow-x-auto">
-              {openPanels.map((panel, i) => (
+              {openPanels.map((panel, i) => {
+                const isSettings = panel.type === 'settings';
+                const nonSettingsPanels = openPanels.filter((p) => p.type !== 'settings').length;
+                const panelWidth = isSettings
+                  ? '360px'
+                  : nonSettingsPanels === 0
+                    ? '100%'
+                    : `calc((100% - 360px) / ${Math.min(nonSettingsPanels, 3)})`;
+                return (
                 <div
                   key={panel.id}
-                  className="flex shrink-0 flex-col"
+                  className={isSettings ? 'flex flex-col' : 'flex shrink-0 flex-col'}
                   style={{
-                    width: `${100 / Math.min(openPanels.length, 3)}%`,
-                    minWidth: `${100 / 3}%`,
+                    width: panelWidth,
+                    minWidth: isSettings ? '360px' : `${100 / 3}%`,
                     borderLeft: i > 0 ? '1px solid #999' : undefined,
                   }}
                 >
-                  {panel.type === 'file' ? (
+                  {panel.type === 'settings' ? (
+                    <SettingsPanel
+                      panel={panel}
+                      onClose={closePanel}
+                    />
+                  ) : panel.type === 'file' ? (
                     <FilePanel
                       panel={panel}
                       allFiles={recentFiles}
@@ -392,7 +416,8 @@ export default function WorkspacePage() {
                     />
                   )}
                 </div>
-              ))}
+                );
+              })}
             </div>
           )}
         </main>

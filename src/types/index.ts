@@ -31,7 +31,7 @@ export interface RecentFile {
   updatedAt: Date;
 }
 
-export type PanelType = 'channel' | 'dm' | 'file';
+export type PanelType = 'channel' | 'dm' | 'file' | 'settings';
 
 export interface Panel {
   id: string;

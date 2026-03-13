@@ -1,7 +1,7 @@
 'use client';
 
 import Image from 'next/image';
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import type { Channel, Member, Panel } from '@/types';
 
 interface SidebarProps {
@@ -18,6 +18,7 @@ interface SidebarProps {
   onOpenDM: (member: Member) => void;
   onOpenWikiHome: () => void;
   onOpenFileBrowser: () => void;
+  onOpenSettings: () => void;
 }
 
 export default function Sidebar({
@@ -33,15 +34,18 @@ export default function Sidebar({
   onOpenDM,
   onOpenWikiHome,
   onOpenFileBrowser,
+  onOpenSettings,
   openPanels,
 }: SidebarProps) {
   const [collapsed, setCollapsed] = useState(false);
   const [tooltip, setTooltip] = useState<{ text: string; x: number; y: number } | null>(null);
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
   const [showMemberMenu, setShowMemberMenu] = useState(false);
+  const [showUserMenu, setShowUserMenu] = useState(false);
   const [showInvitePopup, setShowInvitePopup] = useState(false);
   const [inviteEmail, setInviteEmail] = useState('');
   const memberMenuRef = useRef<HTMLDivElement>(null);
+  const userMenuRef = useRef<HTMLDivElement>(null);
   const tooltipTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const showTooltip = (text: string, e: React.MouseEvent) => {
@@ -52,6 +56,23 @@ export default function Sidebar({
   const hideTooltip = () => {
     tooltipTimeout.current = setTimeout(() => setTooltip(null), 80);
   };
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      const target = event.target as Node;
+      if (memberMenuRef.current && !memberMenuRef.current.contains(target)) {
+        setShowMemberMenu(false);
+      }
+      if (userMenuRef.current && !userMenuRef.current.contains(target)) {
+        setShowUserMenu(false);
+      }
+    };
+
+    if (showMemberMenu || showUserMenu) {
+      document.addEventListener('click', handleClickOutside);
+      return () => document.removeEventListener('click', handleClickOutside);
+    }
+  }, [showMemberMenu, showUserMenu]);
 
   return (
     <aside
@@ -190,7 +211,7 @@ export default function Sidebar({
               {showMemberMenu && (
                 <div
                   ref={memberMenuRef}
-                  className="absolute right-0 mt-1 w-[120px] bg-white border border-[#ccc] rounded shadow-lg z-50"
+                  className="absolute right-0 mt-1 w-[120px] bg-white border border-[#ccc] rounded-[10px] shadow-lg z-50"
                 >
                   <button
                     className="w-full text-left px-3 py-2 text-[13px] hover:bg-[#f0f0f0]"
@@ -327,21 +348,45 @@ export default function Sidebar({
       <div className="flex items-center justify-between px-[15px] py-[15px] shrink-0 border-t border-[#f0f0f0]">
         <div className="flex gap-[10px] items-center min-w-0">
           <span
-            className="w-[40px] h-[40px] rounded-full flex items-center justify-center shrink-0"
+            className="w-[32px] h-[32px] rounded-full flex items-center justify-center shrink-0"
             style={{ background: currentUser.color }}
           >
             <Image src="/icon-profile.svg" alt="profile" width={40} height={40} />
           </span>
-          <div className="flex flex-col gap-[2px] min-w-0">
-            <span className="text-[13px] font-bold text-[#292929] truncate">{currentUser.name}</span>
+          <div className="flex flex-col gap-[0px] min-w-0">
+            <span className="text-[12px] font-bold text-[#292929] truncate">{currentUser.name}</span>
             {currentUser.email && (
               <span className="text-[11px] text-[#696969] truncate">{currentUser.email}</span>
             )}
           </div>
         </div>
-        <button className="w-[30px] h-[30px] flex items-center justify-center rounded hover:bg-black/5 transition-colors shrink-0 cursor-pointer">
-          <Image src="/icon-option.svg" alt="options" width={30} height={30} />
-        </button>
+        <div className="relative">
+          <button
+            onClick={() => setShowUserMenu((v) => !v)}
+            className="w-[30px] h-[30px] flex items-center justify-center rounded hover:bg-black/5 transition-colors shrink-0 cursor-pointer"
+          >
+            <Image src="/icon-option.svg" alt="options" width={30} height={30} />
+          </button>
+          {showUserMenu && (
+            <div
+              ref={userMenuRef}
+              className="absolute right-0 bottom-full mb-1 w-[140px] bg-white border border-[#ccc] rounded-[10px] shadow-lg z-50"
+            >
+              <button
+                className="w-full text-left px-3 py-2 text-[13px] hover:bg-[#f0f0f0]"
+                onClick={() => { setShowUserMenu(false); }}
+              >
+                계정 설정
+              </button>
+              <button
+                className="w-full text-left px-3 py-2 text-[13px] hover:bg-[#f0f0f0]"
+                onClick={() => { setShowUserMenu(false); onOpenSettings(); }}
+              >
+                환경 설정
+              </button>
+            </div>
+          )}
+        </div>
       </div>
     </aside>
   );
